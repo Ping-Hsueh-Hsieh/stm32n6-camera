@@ -102,6 +102,7 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/ISP_Library/isp_param_conf
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/imx335
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/imx219
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/ov5640
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/vd1943
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/vd55g1

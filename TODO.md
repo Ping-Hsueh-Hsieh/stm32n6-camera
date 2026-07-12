@@ -14,3 +14,7 @@ https://github.com/STMicroelectronics/STM32N6-GettingStarted-ImageClassification
 [some implementation for imx219](https://github.com/gtaylormb/ultra96v2_imx219_to_displayport/blob/master/software/src/imx219.c)
 
 CMW_CAMERA_Probe_Sensor: CMW_CAMERA_IMX219_Init from CMW_CAMERA_IMX335_Init
+
+CameraPipeline_Init
+    CMW_CAMERA_Init
+        CMW_CAMERA_Probe_Sensor

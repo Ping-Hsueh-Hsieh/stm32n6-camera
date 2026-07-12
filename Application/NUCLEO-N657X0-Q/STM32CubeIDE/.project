@@ -357,6 +357,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stm32-mw-camera/sensors/cmw_imx335.c</locationURI>
 		</link>
 		<link>
+			<name>Middlewares/stm32-mw-camera/sensors/cmw_imx219.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stm32-mw-camera/sensors/cmw_imx219.c</locationURI>
+		</link>
+		<link>
 			<name>Middlewares/stm32-mw-camera/sensors/cmw_vd1943.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stm32-mw-camera/sensors/cmw_vd1943.c</locationURI>
@@ -385,6 +390,16 @@
 			<name>Middlewares/stm32-mw-camera/sensors/drivers/imx335_reg.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stm32-mw-camera/sensors/imx335/imx335_reg.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/stm32-mw-camera/sensors/drivers/imx219.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stm32-mw-camera/sensors/imx219/imx219.c</locationURI>
+		</link>
+		<link>
+			<name>Middlewares/stm32-mw-camera/sensors/drivers/imx219_reg.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stm32-mw-camera/sensors/imx219/imx219_reg.c</locationURI>
 		</link>
 		<link>
 			<name>Middlewares/stm32-mw-camera/sensors/drivers/vd55g1.c</name>
