@@ -131,13 +131,15 @@ static const struct regval imx219_common_regs[] = {
 
 static const struct regval imx219_2lane_regs[] = {
   /* PLL Clock Table */
-  {IMX219_REG_VTPXCK_DIV, 5},
+  {IMX219_REG_VTPXCK_DIV, 10},
   {IMX219_REG_VTSYCK_DIV, 1},
   {IMX219_REG_PREPLLCK_VT_DIV, 3}, /* 0x03 = AUTO set */
   {IMX219_REG_PREPLLCK_OP_DIV, 3}, /* 0x03 = AUTO set */
-  {IMX219_REG_PLL_VT_MPY, 57},
+  {IMX219_REG_PLL_VT_MPY_HI, 0},
+  {IMX219_REG_PLL_VT_MPY_LO, 57},
   {IMX219_REG_OPSYCK_DIV, 1},
-  {IMX219_REG_PLL_OP_MPY, 114},
+  {IMX219_REG_PLL_OP_MPY_HI, 0},
+  {IMX219_REG_PLL_OP_MPY_LO, 114},
 
   /* 2-Lane CSI Mode */
   {IMX219_REG_CSI_LANE_MODE, IMX219_CSI_2_LANE_MODE},
@@ -149,9 +151,11 @@ static const struct regval imx219_4lane_regs[] = {
   {IMX219_REG_VTSYCK_DIV, 1},
   {IMX219_REG_PREPLLCK_VT_DIV, 3}, /* 0x03 = AUTO set */
   {IMX219_REG_PREPLLCK_OP_DIV, 3}, /* 0x03 = AUTO set */
-  {IMX219_REG_PLL_VT_MPY, 88},
+  {IMX219_REG_PLL_VT_MPY_HI, 0},
+  {IMX219_REG_PLL_VT_MPY_LO, 88},
   {IMX219_REG_OPSYCK_DIV, 1},
-  {IMX219_REG_PLL_OP_MPY, 91},
+  {IMX219_REG_PLL_OP_MPY_HI, 0},
+  {IMX219_REG_PLL_OP_MPY_LO, 91},
 
   /* 4-Lane CSI Mode */
   {IMX219_REG_CSI_LANE_MODE, IMX219_CSI_4_LANE_MODE},
@@ -575,13 +579,22 @@ static int32_t imx219_set_framefmt(IMX219_Object_t* pObj, uint32_t resolution)
   imx219_write_reg(IMX219_REG_CSI_DATA_FORMAT_A, (bpp << 8) | bpp, &ret);
   imx219_write_reg(IMX219_REG_OPPXCK_DIV, bpp, &ret);
 #endif
+  // uint16_t width = 1920;
+  // uint16_t height = 1080;
+  // uint8_t width_buf[2] = {width >> 8, width & 0x00FF};
+  // uint8_t height_buf[2] = {height >> 8, height & 0x00FF};
+  // imx219_write_reg(&pObj->Ctx, IMX219_REG_X_OUTPUT_SIZE, width_buf, 2);
+  // imx219_write_reg(&pObj->Ctx, IMX219_REG_Y_OUTPUT_SIZE, height_buf, 2);
+  //
+  // imx219_write_reg(&pObj->Ctx, IMX219_REG_TP_WINDOW_WIDTH, width_buf, 2);
+  // imx219_write_reg(&pObj->Ctx, IMX219_REG_TP_WINDOW_HEIGHT, height_buf, 2);
   return IMX219_OK;
 }
 
 static int32_t imx219_enable_streaming(IMX219_Object_t* pObj)
 {
   uint8_t tmp = IMX219_MODE_STREAMING;
-  return imx219_write_reg(&pObj->Ctx, IMX219_REG_MODE_SELECT, &tmp, IMX219_MODE_STREAMING);
+  return imx219_write_reg(&pObj->Ctx, IMX219_REG_MODE_SELECT, &tmp, 1);
 }
 
 /**
@@ -597,49 +610,18 @@ int32_t IMX219_Init(IMX219_Object_t* pObj, uint32_t Resolution, uint32_t PixelFo
 
   if (pObj->IsInitialized == 0U)
   {
-    if (IMX219_WriteTable(pObj, imx219_common_regs, ARRAY_SIZE(imx219_common_regs)) != IMX219_OK)
-    {
-      ret = IMX219_ERROR;
-    } else
-        if (imx219_configure_lanes(pObj) != IMX219_OK)
-    {
-      ret = IMX219_ERROR;
-    }
-        else if (imx219_set_framefmt(pObj, Resolution) != IMX219_OK)
+    // if (IMX219_WriteTable(pObj, imx219_common_regs, ARRAY_SIZE(imx219_common_regs)) != IMX219_OK)
+    // {
+    //   ret = IMX219_ERROR;
+    // } else
+    if (imx219_configure_lanes(pObj) != IMX219_OK)
     {
       ret = IMX219_ERROR;
     }
-    // else if (imx219_enable_streaming(pObj) != IMX219_OK)
+    // else if (imx219_set_framefmt(pObj, Resolution) != IMX219_OK)
     // {
     //   ret = IMX219_ERROR;
     // }
-
-    {
-      // switch (Resolution)
-      // {
-      // case IMX219_R3280_2464:
-      //   if (IMX219_WriteTable(pObj, res_2592_1944_regs, ARRAY_SIZE(res_2592_1944_regs)) != IMX219_OK)
-      //   {
-      //     ret = IMX219_ERROR;
-      //   }
-      //   break;
-      // /* Add new resolution here */
-      // default:
-      //   /* Resolution not supported */
-      //   ret = IMX219_ERROR;
-      // }
-      //
-      // if (!ret)
-      // {
-      //   if (IMX219_WriteTable(pObj, mode_2l_10b_regs, ARRAY_SIZE(mode_2l_10b_regs)) != IMX219_OK)
-      //   {
-      //     ret = IMX219_ERROR;
-      //   } else
-      //   {
-      //     pObj->IsInitialized = 1U;
-      //   }
-      // }
-    }
   }
 
   return ret;
@@ -658,7 +640,7 @@ int32_t IMX219_Start(IMX219_Object_t* pObj)
   int32_t ret = IMX219_OK;
   /* Start streaming */
   tmp = IMX219_MODE_STREAMING;
-  ret = imx219_write_reg(&pObj->Ctx, IMX219_REG_MODE_SELECT, &tmp, IMX219_MODE_STREAMING);
+  ret = imx219_write_reg(&pObj->Ctx, IMX219_REG_MODE_SELECT, &tmp, 1);
   if (ret != IMX219_OK)
   {
     return IMX219_ERROR;
@@ -796,7 +778,7 @@ int32_t IMX219_SetExposure(IMX219_Object_t* pObj, int32_t exposure)
       tmp[1] = val & 0x00FF;
       return imx219_write_reg(&pObj->Ctx, IMX219_REG_EXPOSURE, &tmp[0], 2);
   }
-#endif // 0
+#endif  // 0
 
   // uint32_t vmax, shutter;
   // uint8_t hold;

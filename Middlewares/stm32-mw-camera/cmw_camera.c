@@ -1921,17 +1921,17 @@ static int32_t CMW_CAMERA_IMX219_Init( CMW_Sensor_Init_t *initSensors_params)
     return CMW_ERROR_COMPONENT_FAILURE;
   }
 
-  ret = Camera_Drv.SetFrequency(&camera_bsp, IMX219_XCLK_FREQ);
-  if (ret != CMW_ERROR_NONE)
-  {
-    return CMW_ERROR_COMPONENT_FAILURE;
-  }
+  // ret = Camera_Drv.SetFrequency(&camera_bsp, IMX219_XCLK_FREQ);
+  // if (ret != CMW_ERROR_NONE)
+  // {
+  //   return CMW_ERROR_COMPONENT_FAILURE;
+  // }
 
-  ret = Camera_Drv.SetFramerate(&camera_bsp, initSensors_params->fps);
-  if (ret != CMW_ERROR_NONE)
-  {
-    return CMW_ERROR_COMPONENT_FAILURE;
-  }
+  // ret = Camera_Drv.SetFramerate(&camera_bsp, initSensors_params->fps);
+  // if (ret != CMW_ERROR_NONE)
+  // {
+  //   return CMW_ERROR_COMPONENT_FAILURE;
+  // }
 
   switch (sensor_config->pixel_format)
   {
@@ -1948,7 +1948,7 @@ static int32_t CMW_CAMERA_IMX219_Init( CMW_Sensor_Init_t *initSensors_params)
 
   csi_conf.NumberOfLanes = DCMIPP_CSI_TWO_DATA_LANES;
   csi_conf.DataLaneMapping = DCMIPP_CSI_PHYSICAL_DATA_LANES;
-  csi_conf.PHYBitrate = DCMIPP_CSI_PHY_BT_1600;
+  csi_conf.PHYBitrate = DCMIPP_CSI_PHY_BT_950;  // 912 Mbps/lane * 2 lane / 10 bits/pixel = 182.4 MP/sec
   ret = HAL_DCMIPP_CSI_SetConfig(&hcamera_dcmipp, &csi_conf);
   if (ret != HAL_OK)
   {
