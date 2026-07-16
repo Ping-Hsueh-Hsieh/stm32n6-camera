@@ -394,7 +394,7 @@ void isp_ae_get_new_exposure(uint32_t lux, uint32_t averageL, uint32_t *pExposur
     /**** Clamp and split exposure into exposure value and gain ****/
     if (new_global_exposure <= pSensorInfo->exposure_max)
     {
-      *pGain = 0;
+      *pGain = 0; // FIXME: this is the reason why gain is 0
       *pExposure = (new_global_exposure < pSensorInfo->exposure_min) ? pSensorInfo->exposure_min : (uint32_t)new_global_exposure;
     }
     else
