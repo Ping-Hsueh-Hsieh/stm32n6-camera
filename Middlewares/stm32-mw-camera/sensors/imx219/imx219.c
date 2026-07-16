@@ -139,7 +139,8 @@ static const struct regval imx219_2lane_regs[] = {
   {IMX219_REG_PLL_VT_MPY_LO, 57},
   {IMX219_REG_OPSYCK_DIV, 1},
   {IMX219_REG_PLL_OP_MPY_HI, 0},
-  {IMX219_REG_PLL_OP_MPY_LO, 114},
+  // {IMX219_REG_PLL_OP_MPY_LO, 114},
+  {IMX219_REG_PLL_OP_MPY_LO, 57},  // HACK: for some reason it works for camera to send frame
 
   /* 2-Lane CSI Mode */
   {IMX219_REG_CSI_LANE_MODE, IMX219_CSI_2_LANE_MODE},
