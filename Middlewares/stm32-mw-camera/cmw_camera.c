@@ -1948,7 +1948,7 @@ static int32_t CMW_CAMERA_IMX219_Init( CMW_Sensor_Init_t *initSensors_params)
 
   csi_conf.NumberOfLanes = DCMIPP_CSI_TWO_DATA_LANES;
   csi_conf.DataLaneMapping = DCMIPP_CSI_PHYSICAL_DATA_LANES;
-  csi_conf.PHYBitrate = DCMIPP_CSI_PHY_BT_950;  // 912 Mbps/lane * 2 lane / 10 bits/pixel = 182.4 MP/sec
+  csi_conf.PHYBitrate = DCMIPP_CSI_PHY_BT_950;  // 456 Mbps/lane * 2 lane = 912 Mbps; 912 Mbps / 10 bits/pixel = 91.2 MP/sec;
   ret = HAL_DCMIPP_CSI_SetConfig(&hcamera_dcmipp, &csi_conf);
   if (ret != HAL_OK)
   {
