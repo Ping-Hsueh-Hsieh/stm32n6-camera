@@ -110,15 +110,19 @@ typedef struct
 #if (IMX219_RESOLUTION == IMX219_R3280_2464)
 #define IMX219_WIDTH              3280
 #define IMX219_HEIGHT             2464
+#define IMX219_BINNING_FAC        1
 #elif (IMX219_RESOLUTION == IMX219_R1920_1080)
 #define IMX219_WIDTH              1920
 #define IMX219_HEIGHT             1080
+#define IMX219_BINNING_FAC        1
 #elif (IMX219_RESOLUTION == IMX219_R1640_1232)
 #define IMX219_WIDTH              1640
 #define IMX219_HEIGHT             1232
+#define IMX219_BINNING_FAC        2
 #elif (IMX219_RESOLUTION == IMX219_R640_480)
 #define IMX219_WIDTH              640
 #define IMX219_HEIGHT             480
+#define IMX219_BINNING_FAC        1
 #endif
 
 /* Camera Pixel Format */

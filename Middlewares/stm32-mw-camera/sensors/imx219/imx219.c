@@ -557,8 +557,13 @@ static uint8_t imx219_get_format_bpp(const uint32_t resolution)
 
 static void imx219_get_binning(uint8_t* bin_h, uint8_t* bin_v)
 {
-  *bin_h = IMX219_BINNING_NONE;
-  *bin_v = IMX219_BINNING_NONE;
+  if (IMX219_BINNING_FAC > 1) {
+    *bin_h = IMX219_BINNING_X2;
+    *bin_v = IMX219_BINNING_X2;
+  } else {
+    *bin_h = IMX219_BINNING_NONE;
+    *bin_v = IMX219_BINNING_NONE;
+  }
 }
 
 static int32_t imx219_set_framefmt(IMX219_Object_t* pObj, uint32_t resolution)
@@ -768,7 +773,7 @@ int32_t IMX219_SetExposure(IMX219_Object_t* pObj, int32_t exposure)
 {
   int32_t ret = IMX219_OK;
 
-  uint8_t rate_factor = 1;  // HACK: no binning mode
+  uint8_t rate_factor = IMX219_BINNING_FAC;
   uint16_t val = exposure / rate_factor;
   if (val >= IMX219_EXPOSURE_MIN && val <= IMX219_EXPOSURE_MAX)
   {
