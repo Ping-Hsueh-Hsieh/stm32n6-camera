@@ -772,10 +772,7 @@ int32_t IMX219_SetExposure(IMX219_Object_t* pObj, int32_t exposure)
   uint16_t val = exposure / rate_factor;
   if (val >= IMX219_EXPOSURE_MIN && val <= IMX219_EXPOSURE_MAX)
   {
-    uint8_t tmp[2];
-    tmp[0] = (val & 0xFF00) >> 8;
-    tmp[1] = val & 0x00FF;
-    return imx219_write_reg(&pObj->Ctx, IMX219_REG_EXPOSURE, &tmp[0], 2);
+    return imx219_write_reg(&pObj->Ctx, IMX219_REG_EXPOSURE, (uint8_t*)&val, 2);
   } else
   {
     DEV_ASSERT(0, "value out of bound");
