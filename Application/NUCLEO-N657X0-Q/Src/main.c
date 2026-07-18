@@ -714,18 +714,31 @@ static void CONSOLE_Config()
   }
 }
 
+#define WRITE_UART 0
+#define WRITE_ITM 1
+#define WRITE_METHOD WRITE_ITM
+
 int _write(int file, char *ptr, int len)
 {
-  HAL_StatusTypeDef status;
-
   if ((file != STDOUT_FILENO) && (file != STDERR_FILENO)) {
       errno = EBADF;
       return -1;
   }
 
+#if (WRITE_METHOD == WRITE_UART)
+  HAL_StatusTypeDef status;
+
   status = HAL_UART_Transmit(&huart1, (uint8_t*)ptr, len, ~0);
 
   return (status == HAL_OK ? len : 0);
+#else
+  int DataIdx;
+  for (DataIdx = 0; DataIdx < len; DataIdx++)
+  {
+    ITM_SendChar(*ptr++);
+  }
+  return len;
+#endif
 }
 
 
