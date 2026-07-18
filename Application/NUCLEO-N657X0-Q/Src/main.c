@@ -413,9 +413,10 @@ static void Display_NetworkOutput(uint32_t inference_ms)
   assert(ret == HAL_OK);
   __enable_irq();
 
-  UTIL_LCD_Clear(0);
-  UTIL_LCDEx_PrintfAt(0, LINE(0), CENTER_MODE, "%s %.0f%%", nn_top1_output_class_name, nn_top1_output_class_proba * 100);
-  UTIL_LCDEx_PrintfAt(0, LINE(18), CENTER_MODE, "Inference: %ums", inference_ms);
+  uint32_t color = 0x0ULL;
+  UTIL_LCD_Clear(color);
+  UTIL_LCDEx_PrintfAt(0, LINE(15), RIGHT_MODE, "%s %.0f%%", nn_top1_output_class_name, nn_top1_output_class_proba * 100);
+  UTIL_LCDEx_PrintfAt(0, LINE(18), RIGHT_MODE, "Inference: %ums", inference_ms);
 
   Display_WelcomeScreen();
 
