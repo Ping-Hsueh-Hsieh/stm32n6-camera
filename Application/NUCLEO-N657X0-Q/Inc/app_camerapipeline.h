@@ -20,8 +20,7 @@
 
 #define CAMERA_FPS 30
 #define SCREEN_HEIGHT (240)
-// #define SCREEN_WIDTH  (320)
-#define SCREEN_WIDTH  (416)
+#define SCREEN_WIDTH  (320)
 
 void CameraPipeline_Init(uint32_t *layers_width[2], uint32_t *layers_height[2], uint32_t *pitch_nn);
 void CameraPipeline_DeInit(void);
