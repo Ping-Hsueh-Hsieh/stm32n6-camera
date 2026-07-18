@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "imx219.h"
 #include <string.h>
+#include "util.h"
 
 #define IMX219_RESOLUTION IMX219_R3280_2464
 
@@ -767,54 +768,18 @@ int32_t IMX219_SetExposure(IMX219_Object_t* pObj, int32_t exposure)
 {
   int32_t ret = IMX219_OK;
 
-  // FIX: maybe the exposure value is wrong??
-#if 0
   uint8_t rate_factor = 1;  // HACK: no binning mode
   uint16_t val = exposure / rate_factor;
   if (val >= IMX219_EXPOSURE_MIN && val <= IMX219_EXPOSURE_MAX)
   {
-      uint8_t tmp[2];
-      tmp[0] = (val & 0xFF00) >> 8;
-      tmp[1] = val & 0x00FF;
-      return imx219_write_reg(&pObj->Ctx, IMX219_REG_EXPOSURE, &tmp[0], 2);
+    uint8_t tmp[2];
+    tmp[0] = (val & 0xFF00) >> 8;
+    tmp[1] = val & 0x00FF;
+    return imx219_write_reg(&pObj->Ctx, IMX219_REG_EXPOSURE, &tmp[0], 2);
+  } else
+  {
+    DEV_ASSERT(0, "value out of bound");
   }
-#endif  // 0
-
-  // uint32_t vmax, shutter;
-  // uint8_t hold;
-
-  // if (imx219_read_reg(&pObj->Ctx, IMX219_REG_VMAX, (uint8_t*)&vmax, 4) != IMX219_OK)
-  // {
-  //   ret = IMX219_ERROR;
-  // } else
-  // {
-  //   shutter = (uint32_t)(vmax - (exposure / IMX219_1H_PERIOD_USEC));
-  //
-  //   if (shutter < IMX219_SHUTTER_MIN)
-  //   {
-  //     ret = IMX219_ERROR;
-  //   } else
-  //   {
-  //     hold = 1;
-  //     if (imx219_write_reg(&pObj->Ctx, IMX219_REG_HOLD, &hold, 1) != IMX219_OK)
-  //     {
-  //       ret = IMX219_ERROR;
-  //     } else
-  //     {
-  //       if (imx219_write_reg(&pObj->Ctx, IMX219_REG_SHUTTER, (uint8_t*)&shutter, 3) != IMX219_OK)
-  //       {
-  //         ret = IMX219_ERROR;
-  //       } else
-  //       {
-  //         hold = 0;
-  //         if (imx219_write_reg(&pObj->Ctx, IMX219_REG_HOLD, &hold, 1) != IMX219_OK)
-  //         {
-  //           ret = IMX219_ERROR;
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
 
   return ret;
 }
@@ -860,16 +825,26 @@ int32_t IMX219_SetFramerate(IMX219_Object_t* pObj, int32_t framerate)
 int32_t IMX219_MirrorFlipConfig(IMX219_Object_t* pObj, uint32_t Config)
 {
   int32_t ret = IMX219_OK;
+  uint8_t value;
 
-  // TODO: flip
-  // switch (Config)
-  // {
-  // case IMX219_FLIP: ret = IMX219_WriteTable(pObj, mirrorflip_mode_regs[1], ARRAY_SIZE(mirrorflip_mode_regs[1])); break;
-  // case IMX219_MIRROR: ret = IMX219_WriteTable(pObj, mirrorflip_mode_regs[2], ARRAY_SIZE(mirrorflip_mode_regs[2])); break;
-  // case IMX219_MIRROR_FLIP: ret = IMX219_WriteTable(pObj, mirrorflip_mode_regs[3], ARRAY_SIZE(mirrorflip_mode_regs[3])); break;
-  // case IMX219_MIRROR_FLIP_NONE:
-  // default: ret = IMX219_WriteTable(pObj, mirrorflip_mode_regs[0], ARRAY_SIZE(mirrorflip_mode_regs[0])); break;
-  // }
+#define HFLIP_DIS 0x00U
+#define HFLIP_ENA 0x01U
+#define VFLIP_DIS 0x00U
+#define VFLIP_ENA 0x02U
+
+  switch (Config)
+  {
+  case IMX219_FLIP: value = HFLIP_ENA | VFLIP_DIS; break;
+  case IMX219_MIRROR: value = HFLIP_DIS | VFLIP_ENA; break;
+  case IMX219_MIRROR_FLIP: value = HFLIP_ENA | VFLIP_ENA; break;
+  case IMX219_MIRROR_FLIP_NONE:
+  default: value = HFLIP_DIS | VFLIP_DIS; break;
+  }
+
+  if (imx219_write_reg(&pObj->Ctx, IMX219_REG_ORIENTATION, &value, 1) != IMX219_OK)
+  {
+    return IMX219_ERROR;
+  }
   return ret;
 }
 
