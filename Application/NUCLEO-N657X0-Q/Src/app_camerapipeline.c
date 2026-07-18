@@ -95,7 +95,7 @@ static void DCMIPP_PipeInitNn(uint32_t *pitch)
   }
   else if (ASPECT_RATIO_MODE == ASPECT_RATIO_FULLSCREEN)
   {
-    aspect_ratio = CMW_Aspect_ratio_fit;
+    aspect_ratio = CMW_Aspect_ratio_fullscreen;
   }
 
   dcmipp_conf.output_width = STAI_NETWORK_IN_1_WIDTH;
