@@ -42,7 +42,7 @@
   * @param  length Number of data to read
   * @retval Component status
   */
-int32_t imx219_read_reg(imx219_ctx_t *ctx, uint16_t reg, uint8_t *pdata, uint16_t length)
+int32_t imx219_read_reg(imx219_ctx_t* ctx, uint16_t reg, uint8_t* pdata, uint16_t length)
 {
   return ctx->ReadReg(ctx->handle, reg, pdata, length);
 }
@@ -55,9 +55,13 @@ int32_t imx219_read_reg(imx219_ctx_t *ctx, uint16_t reg, uint8_t *pdata, uint16_
   * @param  length Number of data to write
   * @retval Component status
   */
-int32_t imx219_write_reg(imx219_ctx_t *ctx, uint16_t reg, uint8_t *data, uint16_t length)
+int32_t imx219_write_reg(imx219_ctx_t* ctx, uint16_t reg, uint8_t* data, uint16_t length)
 {
-  return ctx->WriteReg(ctx->handle, reg, data, length);
+  uint32_t res = 0;
+  for (uint16_t i = 0; i < length; i++) {
+    res |= ctx->WriteReg(ctx->handle, reg+i, data+(length - i - 1), 1);
+  }
+  return res;
 }
 
 /**
@@ -71,4 +75,3 @@ int32_t imx219_write_reg(imx219_ctx_t *ctx, uint16_t reg, uint8_t *data, uint16_
 /**
   * @}
   */
-
