@@ -573,12 +573,14 @@ static int32_t imx219_set_framefmt(IMX219_Object_t* pObj, uint32_t resolution)
   uint8_t bin_h, bin_v;
   uint8_t bpp = imx219_get_format_bpp(resolution);
   uint16_t reg_x_sta_a = IMX219_ACTIVE_AREA_LEFT;
-  imx219_write_reg(&pObj->Ctx, IMX219_REG_X_ADD_STA_A, (uint8_t*)&reg_x_sta_a, 2);
   uint16_t reg_x_end_a = IMX219_ACTIVE_AREA_LEFT + width - 1;
+  uint16_t reg_y_sta_a = IMX219_ACTIVE_AREA_LEFT;
+  uint16_t reg_y_end_a = IMX219_ACTIVE_AREA_LEFT + width - 1;
+
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_X_ADD_STA_A, (uint8_t*)&reg_x_sta_a, 2);
   imx219_write_reg(&pObj->Ctx, IMX219_REG_X_ADD_END_A, (uint8_t*)&reg_x_end_a, 2);
-  uint16_t reg_y_sta_a = IMX219_ACTIVE_AREA_TOP;
+
   imx219_write_reg(&pObj->Ctx, IMX219_REG_Y_ADD_STA_A, (uint8_t*)&reg_y_sta_a, 2);
-  uint16_t reg_y_end_a = IMX219_ACTIVE_AREA_TOP + height - 1;
   imx219_write_reg(&pObj->Ctx, IMX219_REG_Y_ADD_END_A, (uint8_t*)&reg_y_end_a, 2);
 
   imx219_get_binning(&bin_h, &bin_v);

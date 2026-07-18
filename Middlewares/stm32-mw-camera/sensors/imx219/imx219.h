@@ -105,7 +105,7 @@ typedef struct
 #define IMX219_R1640_1232 2U /* 1640x1232 Resolution       */
 #define IMX219_R640_480 3U   /* 640x480 Resolution       */
 
-#define IMX219_RESOLUTION IMX219_R1920_1080
+#define IMX219_RESOLUTION IMX219_R3280_2464
 
 #if (IMX219_RESOLUTION == IMX219_R3280_2464)
 #define IMX219_WIDTH              3280
@@ -124,6 +124,9 @@ typedef struct
 #define IMX219_HEIGHT             480
 #define IMX219_BINNING_FAC        1
 #endif
+
+#define IMX219_ACTIVE_AREA_LEFT (IMX219_INV_GAP_PIXEL)
+#define IMX219_ACTIVE_AREA_TOP (IMX219_INV_GAP_PIXEL)
 
 /* Camera Pixel Format */
 #define IMX219_RAW_RGGB10 10U /* Pixel Format RAW_RGGB10    */

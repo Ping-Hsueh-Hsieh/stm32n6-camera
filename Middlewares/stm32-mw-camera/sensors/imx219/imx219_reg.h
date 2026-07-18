@@ -50,17 +50,6 @@ extern "C" {
 #define CCI_REG_ADDR(x) FIELD_GET(CCI_REG_ADDR_MASK, x)
 #define CCI_REG_LE BIT(20)
 
-// NOTE: not sure why V4L2 needs to shift register up
-// #define CCI_REG8(x) ((1 << CCI_REG_WIDTH_SHIFT) | (x))
-// #define CCI_REG16(x) ((2 << CCI_REG_WIDTH_SHIFT) | (x))
-// #define CCI_REG24(x) ((3 << CCI_REG_WIDTH_SHIFT) | (x))
-// #define CCI_REG32(x) ((4 << CCI_REG_WIDTH_SHIFT) | (x))
-// #define CCI_REG64(x) ((8 << CCI_REG_WIDTH_SHIFT) | (x))
-// #define CCI_REG16_LE(x) (CCI_REG_LE | (2U << CCI_REG_WIDTH_SHIFT) | (x))
-// #define CCI_REG24_LE(x) (CCI_REG_LE | (3U << CCI_REG_WIDTH_SHIFT) | (x))
-// #define CCI_REG32_LE(x) (CCI_REG_LE | (4U << CCI_REG_WIDTH_SHIFT) | (x))
-// #define CCI_REG64_LE(x) (CCI_REG_LE | (8U << CCI_REG_WIDTH_SHIFT) | (x))
-
 #define CCI_REG8(x) (x)
 #define CCI_REG16(x)(x)
 #define CCI_REG24(x)(x)
@@ -203,8 +192,7 @@ extern "C" {
 /* IMX219 native and active pixel array size. */
 #define IMX219_NATIVE_WIDTH 3296U
 #define IMX219_NATIVE_HEIGHT 2480U
-#define IMX219_ACTIVE_AREA_LEFT 8U
-#define IMX219_ACTIVE_AREA_TOP 8U
+#define IMX219_INV_GAP_PIXEL 8U
 #define IMX219_ACTIVE_AREA_WIDTH 3280U
 #define IMX219_ACTIVE_AREA_HEIGHT 2464U
 
