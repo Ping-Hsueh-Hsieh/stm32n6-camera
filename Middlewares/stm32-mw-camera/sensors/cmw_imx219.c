@@ -181,8 +181,8 @@ static int32_t CMW_IMX219_GetSensorInfo(void* io_ctx, ISP_SensorInfoTypeDef* inf
 
   info->bayer_pattern = IMX219_BAYER_PATTERN;
   info->color_depth = IMX219_COLOR_DEPTH;
-  info->width = IMX219_GetWidth();
-  info->height = IMX219_GetHeight();
+  info->width = IMX219_WIDTH;
+  info->height = IMX219_HEIGHT;
   info->gain_min = IMX219_GAIN_MIN;
   info->gain_max = IMX219_GAIN_MAX;
   info->again_max = IMX219_AGAIN_MAX;

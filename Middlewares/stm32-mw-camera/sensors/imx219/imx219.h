@@ -105,6 +105,22 @@ typedef struct
 #define IMX219_R1640_1232 2U /* 1640x1232 Resolution       */
 #define IMX219_R640_480 3U   /* 640x480 Resolution       */
 
+#define IMX219_RESOLUTION IMX219_R1920_1080
+
+#if (IMX219_RESOLUTION == IMX219_R3280_2464)
+#define IMX219_WIDTH              3280
+#define IMX219_HEIGHT             2464
+#elif (IMX219_RESOLUTION == IMX219_R1920_1080)
+#define IMX219_WIDTH              1920
+#define IMX219_HEIGHT             1080
+#elif (IMX219_RESOLUTION == IMX219_R1640_1232)
+#define IMX219_WIDTH              1640
+#define IMX219_HEIGHT             1232
+#elif (IMX219_RESOLUTION == IMX219_R640_480)
+#define IMX219_WIDTH              640
+#define IMX219_HEIGHT             480
+#endif
+
 /* Camera Pixel Format */
 #define IMX219_RAW_RGGB10 10U /* Pixel Format RAW_RGGB10    */
 
@@ -133,8 +149,6 @@ int32_t IMX219_SetFrequency(IMX219_Object_t* pObj, int32_t frequency);
 int32_t IMX219_SetFramerate(IMX219_Object_t* pObj, int32_t framerate);
 int32_t IMX219_MirrorFlipConfig(IMX219_Object_t* pObj, uint32_t Config);
 int32_t IMX219_SetTestPattern(IMX219_Object_t* pObj, int32_t mode);
-uint32_t IMX219_GetWidth(void);
-uint32_t IMX219_GetHeight(void);
 
 /**
   * @}

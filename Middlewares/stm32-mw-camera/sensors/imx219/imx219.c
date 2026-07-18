@@ -21,8 +21,6 @@
 #include <string.h>
 #include "util.h"
 
-#define IMX219_RESOLUTION IMX219_R3280_2464
-
 /** @addtogroup BSP
   * @{
   */
@@ -538,7 +536,7 @@ static int32_t imx219_configure_lanes(IMX219_Object_t* pObj)
   return IMX219_WriteTable(pObj, imx219_2lane_regs, ARRAY_SIZE(imx219_2lane_regs));
 };
 
-static uint32_t imx219_get_format_bpp(const uint32_t resolution)
+static uint8_t imx219_get_format_bpp(const uint32_t resolution)
 {
   // switch (format->code) {
   // case MEDIA_BUS_FMT_SRGGB8_1X8:
@@ -557,38 +555,41 @@ static uint32_t imx219_get_format_bpp(const uint32_t resolution)
   return 10;
 }
 
+static void imx219_get_binning(uint8_t* bin_h, uint8_t* bin_v)
+{
+  *bin_h = IMX219_BINNING_NONE;
+  *bin_v = IMX219_BINNING_NONE;
+}
+
 static int32_t imx219_set_framefmt(IMX219_Object_t* pObj, uint32_t resolution)
 {
-#if 0
+  uint16_t width = IMX219_WIDTH;
+  uint16_t height = IMX219_HEIGHT;
   uint8_t bin_h, bin_v;
-  uint32_t bpp = imx219_get_format_bpp(resolution);
-  imx219_write_reg(IMX219_REG_X_ADD_STA_A, IMX219_ACTIVE_AREA_LEFT, &ret);
-  imx219_write_reg(IMX219_REG_X_ADD_END_A, IMX219_ACTIVE_AREA_LEFT + crop->width - 1, &ret);
-  imx219_write_reg(IMX219_REG_Y_ADD_STA_A, IMX219_ACTIVE_AREA_TOP, &ret);
-  imx219_write_reg(IMX219_REG_Y_ADD_END_A, IMX219_ACTIVE_AREA_TOP + crop->height - 1, &ret);
+  uint8_t bpp = imx219_get_format_bpp(resolution);
+  uint16_t reg_x_sta_a = IMX219_ACTIVE_AREA_LEFT;
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_X_ADD_STA_A, (uint8_t*)&reg_x_sta_a, 2);
+  uint16_t reg_x_end_a = IMX219_ACTIVE_AREA_LEFT + width - 1;
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_X_ADD_END_A, (uint8_t*)&reg_x_end_a, 2);
+  uint16_t reg_y_sta_a = IMX219_ACTIVE_AREA_TOP;
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_Y_ADD_STA_A, (uint8_t*)&reg_y_sta_a, 2);
+  uint16_t reg_y_end_a = IMX219_ACTIVE_AREA_TOP + height - 1;
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_Y_ADD_END_A, (uint8_t*)&reg_y_end_a, 2);
 
-  imx219_get_binning(state, &bin_h, &bin_v);
-  imx219_write_reg(IMX219_REG_BINNING_MODE_H, bin_h, &ret);
-  imx219_write_reg(IMX219_REG_BINNING_MODE_V, bin_v, &ret);
+  imx219_get_binning(&bin_h, &bin_v);
 
-  imx219_write_reg(IMX219_REG_X_OUTPUT_SIZE, format->width, &ret);
-  imx219_write_reg(IMX219_REG_Y_OUTPUT_SIZE, format->height, &ret);
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_BINNING_MODE_H, &bin_h, 1);
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_BINNING_MODE_V, &bin_v, 1);
 
-  imx219_write_reg(IMX219_REG_TP_WINDOW_WIDTH, format->width, &ret);
-  imx219_write_reg(IMX219_REG_TP_WINDOW_HEIGHT, format->height, &ret);
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_X_OUTPUT_SIZE, (uint8_t*)&width, 2);
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_Y_OUTPUT_SIZE, (uint8_t*)&height, 2);
 
-  imx219_write_reg(IMX219_REG_CSI_DATA_FORMAT_A, (bpp << 8) | bpp, &ret);
-  imx219_write_reg(IMX219_REG_OPPXCK_DIV, bpp, &ret);
-#endif
-  // uint16_t width = 1920;
-  // uint16_t height = 1080;
-  // uint8_t width_buf[2] = {width >> 8, width & 0x00FF};
-  // uint8_t height_buf[2] = {height >> 8, height & 0x00FF};
-  // imx219_write_reg(&pObj->Ctx, IMX219_REG_X_OUTPUT_SIZE, width_buf, 2);
-  // imx219_write_reg(&pObj->Ctx, IMX219_REG_Y_OUTPUT_SIZE, height_buf, 2);
-  //
-  // imx219_write_reg(&pObj->Ctx, IMX219_REG_TP_WINDOW_WIDTH, width_buf, 2);
-  // imx219_write_reg(&pObj->Ctx, IMX219_REG_TP_WINDOW_HEIGHT, height_buf, 2);
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_TP_WINDOW_WIDTH, (uint8_t*)&width, 2);
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_TP_WINDOW_HEIGHT, (uint8_t*)&height, 2);
+
+  uint16_t bpp_u16 = (bpp << 8) | bpp;
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_CSI_DATA_FORMAT_A, (uint8_t*)&bpp_u16, 2);
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_OPPXCK_DIV, &bpp, 1);
   return IMX219_OK;
 }
 
@@ -618,11 +619,10 @@ int32_t IMX219_Init(IMX219_Object_t* pObj, uint32_t Resolution, uint32_t PixelFo
     if (imx219_configure_lanes(pObj) != IMX219_OK)
     {
       ret = IMX219_ERROR;
+    } else if (imx219_set_framefmt(pObj, Resolution) != IMX219_OK)
+    {
+      ret = IMX219_ERROR;
     }
-    // else if (imx219_set_framefmt(pObj, Resolution) != IMX219_OK)
-    // {
-    //   ret = IMX219_ERROR;
-    // }
   }
 
   return ret;
@@ -896,16 +896,6 @@ int32_t IMX219_SetTestPattern(IMX219_Object_t* pObj, int32_t mode)
   }
 
   return ret;
-}
-
-uint32_t IMX219_GetWidth(void)
-{
-  return supported_modes[IMX219_RESOLUTION].width;
-}
-
-uint32_t IMX219_GetHeight(void)
-{
-  return supported_modes[IMX219_RESOLUTION].height;
 }
 
 /**
