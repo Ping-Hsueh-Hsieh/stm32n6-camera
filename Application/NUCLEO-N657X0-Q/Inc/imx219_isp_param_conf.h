@@ -21,6 +21,9 @@
 #ifndef __IMX219_ISP_PARAM_CONF__H
 #define __IMX219_ISP_PARAM_CONF__H
 
+#include "isp_core.h"
+#include "imx219.h"
+
 /* DCMIPP ISP configuration for IMX219 sensor */
 static const ISP_IQParamTypeDef ISP_IQParamCacheInit_IMX219 = {
     .sensorGainStatic = {
@@ -106,10 +109,10 @@ static const ISP_IQParamTypeDef ISP_IQParamCacheInit_IMX219 = {
         .coeff.LUM_256 = 0,
     },
     .statAreaStatic = {
-        .X0 = 648,
-        .Y0 = 486,
-        .XSize = 1296,
-        .YSize = 972,
+        .X0 = IMX219_WIDTH / 4,
+        .Y0 = IMX219_HEIGHT / 4,
+        .XSize = IMX219_WIDTH / 2,
+        .YSize = IMX219_HEIGHT / 2,
     },
     .gamma = {
         .enable = 1,
