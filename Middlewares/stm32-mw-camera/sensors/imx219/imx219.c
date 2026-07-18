@@ -834,8 +834,8 @@ int32_t IMX219_MirrorFlipConfig(IMX219_Object_t* pObj, uint32_t Config)
 
   switch (Config)
   {
-  case IMX219_FLIP: value = HFLIP_ENA | VFLIP_DIS; break;
-  case IMX219_MIRROR: value = HFLIP_DIS | VFLIP_ENA; break;
+  case IMX219_FLIP: value = HFLIP_DIS | VFLIP_ENA; break;
+  case IMX219_MIRROR: value = HFLIP_ENA | VFLIP_DIS; break;
   case IMX219_MIRROR_FLIP: value = HFLIP_ENA | VFLIP_ENA; break;
   case IMX219_MIRROR_FLIP_NONE:
   default: value = HFLIP_DIS | VFLIP_DIS; break;
