@@ -123,7 +123,7 @@ static const struct regval imx219_common_regs[] = {
   {IMX219_REG_Y_ODD_INC_A, 1},
 
   /* Output setup registers */
-  {IMX219_REG_DPHY_CTRL, IMX219_DPHY_CTRL_TIMING_AUTO},
+  {IMX219_REG_DPHY_CTRL, IMX219_DPHY_CTRL_TIMING_MANUAL},
   {IMX219_REG_EXCK_FREQ_HI, EXCK_FREQ_HI},
   {IMX219_REG_EXCK_FREQ_LO, EXCK_FREQ_LO},
 };
@@ -617,10 +617,10 @@ int32_t IMX219_Init(IMX219_Object_t* pObj, uint32_t Resolution, uint32_t PixelFo
 
   if (pObj->IsInitialized == 0U)
   {
-    // if (IMX219_WriteTable(pObj, imx219_common_regs, ARRAY_SIZE(imx219_common_regs)) != IMX219_OK)
-    // {
-    //   ret = IMX219_ERROR;
-    // } else
+    if (IMX219_WriteTable(pObj, imx219_common_regs, ARRAY_SIZE(imx219_common_regs)) != IMX219_OK)
+    {
+      ret = IMX219_ERROR;
+    } else
     if (imx219_configure_lanes(pObj) != IMX219_OK)
     {
       ret = IMX219_ERROR;
