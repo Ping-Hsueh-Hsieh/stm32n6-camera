@@ -123,14 +123,14 @@ static const struct regval imx219_common_regs[] = {
   {IMX219_REG_Y_ODD_INC_A, 1},
 
   /* Output setup registers */
-  {IMX219_REG_DPHY_CTRL, IMX219_DPHY_CTRL_TIMING_MANUAL},
+  {IMX219_REG_DPHY_CTRL, IMX219_DPHY_CTRL_TIMING_AUTO},
   {IMX219_REG_EXCK_FREQ_HI, EXCK_FREQ_HI},
   {IMX219_REG_EXCK_FREQ_LO, EXCK_FREQ_LO},
 };
 
 static const struct regval imx219_2lane_regs[] = {
   /* PLL Clock Table */
-  {IMX219_REG_VTPXCK_DIV, 10},
+  {IMX219_REG_VTPXCK_DIV, 5},
   {IMX219_REG_VTSYCK_DIV, 1},
   {IMX219_REG_PREPLLCK_VT_DIV, 3}, /* 0x03 = AUTO set */
   {IMX219_REG_PREPLLCK_OP_DIV, 3}, /* 0x03 = AUTO set */
@@ -138,7 +138,7 @@ static const struct regval imx219_2lane_regs[] = {
   {IMX219_REG_PLL_VT_MPY_LO, 57},
   {IMX219_REG_OPSYCK_DIV, 1},
   {IMX219_REG_PLL_OP_MPY_HI, 0},
-  {IMX219_REG_PLL_OP_MPY_LO, 57},
+  {IMX219_REG_PLL_OP_MPY_LO, 114},
 
   /* 2-Lane CSI Mode */
   {IMX219_REG_CSI_LANE_MODE, IMX219_CSI_2_LANE_MODE},
@@ -557,13 +557,15 @@ static uint8_t imx219_get_format_bpp(const uint32_t resolution)
 
 static void imx219_get_binning(uint8_t* bin_h, uint8_t* bin_v)
 {
-  if (IMX219_BINNING_FAC > 1) {
-    *bin_h = IMX219_BINNING_X2;
-    *bin_v = IMX219_BINNING_X2;
-  } else {
-    *bin_h = IMX219_BINNING_NONE;
-    *bin_v = IMX219_BINNING_NONE;
-  }
+    *bin_h = IMX219_BINNING_X2_ANALOG;
+    *bin_v = IMX219_BINNING_X2_ANALOG;
+  // if (IMX219_BINNING_FAC > 1) {
+  //   *bin_h = IMX219_BINNING_X2;
+  //   *bin_v = IMX219_BINNING_X2;
+  // } else {
+  //   *bin_h = IMX219_BINNING_NONE;
+  //   *bin_v = IMX219_BINNING_NONE;
+  // }
 }
 
 static int32_t imx219_set_framefmt(IMX219_Object_t* pObj, uint32_t resolution)
@@ -572,10 +574,15 @@ static int32_t imx219_set_framefmt(IMX219_Object_t* pObj, uint32_t resolution)
   uint16_t height = IMX219_HEIGHT;
   uint8_t bin_h, bin_v;
   uint8_t bpp = imx219_get_format_bpp(resolution);
-  uint16_t reg_x_sta_a = IMX219_ACTIVE_AREA_LEFT;
-  uint16_t reg_x_end_a = IMX219_ACTIVE_AREA_LEFT + width - 1;
-  uint16_t reg_y_sta_a = IMX219_ACTIVE_AREA_LEFT;
-  uint16_t reg_y_end_a = IMX219_ACTIVE_AREA_LEFT + width - 1;
+  uint16_t reg_x_sta_a = 1000;
+  uint16_t reg_x_end_a = 2279;
+  uint16_t reg_y_sta_a = 752;
+  uint16_t reg_y_end_a = 1711;
+
+  uint16_t frame_len = 569;
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_FRM_LENGTH_A, (uint8_t*)&frame_len, 2);
+  uint16_t line_len = 3559;
+  imx219_write_reg(&pObj->Ctx, IMX219_REG_LINE_LENGTH_A, (uint8_t*)&line_len, 2);
 
   imx219_write_reg(&pObj->Ctx, IMX219_REG_X_ADD_STA_A, (uint8_t*)&reg_x_sta_a, 2);
   imx219_write_reg(&pObj->Ctx, IMX219_REG_X_ADD_END_A, (uint8_t*)&reg_x_end_a, 2);
@@ -756,6 +763,9 @@ int32_t IMX219_SetGain(IMX219_Object_t* pObj, int32_t gain)
     uint32_t gain_param = 256000UL - 256000UL / gain;
     gain_param /= 1000;
     uint8_t gain_param_u8 = (uint8_t)gain_param;
+
+    gain_param_u8 = 0;  // set 0 all the time
+
     if (imx219_write_reg(&pObj->Ctx, IMX219_REG_ANALOG_GAIN, &gain_param_u8, 1) != IMX219_OK)
     {
       ret = IMX219_ERROR;
@@ -777,6 +787,9 @@ int32_t IMX219_SetExposure(IMX219_Object_t* pObj, int32_t exposure)
 
   uint8_t rate_factor = IMX219_BINNING_FAC;
   uint16_t val = exposure / rate_factor;
+
+  val = 565;
+
   if (val >= IMX219_EXPOSURE_MIN && val <= IMX219_EXPOSURE_MAX)
   {
     return imx219_write_reg(&pObj->Ctx, IMX219_REG_EXPOSURE, (uint8_t*)&val, 2);

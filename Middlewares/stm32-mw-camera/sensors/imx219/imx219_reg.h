@@ -178,8 +178,8 @@ extern "C" {
 #define IMX219_REG_TP_WINDOW_HEIGHT CCI_REG16(0x0626)
 
 /* External clock frequency is 24.0M */
-// #define IMX219_XCLK_FREQ 24000000
-#define IMX219_XCLK_FREQ 12000000
+#define IMX219_XCLK_FREQ 24000000
+// #define IMX219_XCLK_FREQ 12000000
 
 /* Pixel rate is fixed for all the modes */
 #define IMX219_PIXEL_RATE 182400000
@@ -196,38 +196,14 @@ extern "C" {
 #define IMX219_ACTIVE_AREA_WIDTH 3280U
 #define IMX219_ACTIVE_AREA_HEIGHT 2464U
 
-// #define IMX219_REG_HOLD           0x3001
-// #define IMX219_REG_VMAX           0x3030
-// #define IMX219_REG_SHUTTER        0x3058
-// #define IMX219_REG_GAIN           0x30e8
-// #define IMX219_REG_TPG            0x329e
-//
-// #define IMX219_SHUTTER_MIN        9
-//
-// #define IMX219_EXPOSURE_DEFAULT   23814
-//
 #define IMX219_NAME               "IMX219"
 #define IMX219_BAYER_PATTERN      0 /* From ISP definition RGGB / TODO comnon enumeration in camera */
 #define IMX219_COLOR_DEPTH        10 /* in bits */
 #define IMX219_GAIN_MIN           (1000)
 #define IMX219_GAIN_MAX           (10625)
 #define IMX219_AGAIN_MAX          (10625)
-// #define IMX219_GAIN_DEFAULT       (20 * 1000)
-// #define IMX219_GAIN_UNIT_MDB      300
-// #define IMX219_EXPOSURE_MIN       8           /* in us, for sensor @30fps (round up of 7.40 usec) */
-// #define IMX219_EXPOSURE_MAX       33266       /* in us, for sensor @30fps */
-//
-//
-//
-// #define IMX219_REG_HREVERSE       0x304EU
-// #define IMX219_REG_VREVERSE       0x304FU
-// #define AREA3_ST_ADR_1_LSB        0x3074U
-// #define AREA3_ST_ADR_1_MSB        0x3075U
-//
-// /* For 2592x1944 */
-// #define IMX219_WIDTH              2592
-// #define IMX219_HEIGHT             1944
-// #define IMX219_PCLK               396000000
+
+#define IMX219_REG_SOFTWARE_RESET (0x0103)
 
 /**
   * @}
