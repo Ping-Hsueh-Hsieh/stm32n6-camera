@@ -764,7 +764,7 @@ int32_t IMX219_SetGain(IMX219_Object_t* pObj, int32_t gain)
     gain_param /= 1000;
     uint8_t gain_param_u8 = (uint8_t)gain_param;
 
-    gain_param_u8 = 0;  // set 0 all the time
+    gain_param_u8 = 125;  // HACK: set 125 all the time
 
     if (imx219_write_reg(&pObj->Ctx, IMX219_REG_ANALOG_GAIN, &gain_param_u8, 1) != IMX219_OK)
     {
@@ -788,7 +788,7 @@ int32_t IMX219_SetExposure(IMX219_Object_t* pObj, int32_t exposure)
   uint8_t rate_factor = IMX219_BINNING_FAC;
   uint16_t val = exposure / rate_factor;
 
-  val = 565;
+  val = 565;  // HACK: this might not be a good idea
 
   if (val >= IMX219_EXPOSURE_MIN && val <= IMX219_EXPOSURE_MAX)
   {
