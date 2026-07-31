@@ -24,6 +24,20 @@
 #include "isp_core.h"
 #include "imx219.h"
 
+/* The IMX219 mirror/flip registers shift the Bayer phase of the readout window,
+ * so the demosaicing type must follow CAMERA_FLIP. Native (no mirror/flip) is
+ * RGGB; mirror toggles the horizontal phase, flip the vertical one.
+ */
+#if CAMERA_FLIP == CMW_MIRRORFLIP_NONE
+  #define IMX219_BAYER_TYPE ISP_DEMOS_TYPE_RGGB
+#elif CAMERA_FLIP == CMW_MIRRORFLIP_FLIP
+  #define IMX219_BAYER_TYPE ISP_DEMOS_TYPE_GBRG
+#elif CAMERA_FLIP == CMW_MIRRORFLIP_MIRROR
+  #define IMX219_BAYER_TYPE ISP_DEMOS_TYPE_GRBG
+#elif CAMERA_FLIP == CMW_MIRRORFLIP_FLIP_MIRROR
+  #define IMX219_BAYER_TYPE ISP_DEMOS_TYPE_BGGR
+#endif
+
 /* DCMIPP ISP configuration for IMX219 sensor */
 static const ISP_IQParamTypeDef ISP_IQParamCacheInit_IMX219 = {
     .sensorGainStatic = {
@@ -58,7 +72,7 @@ static const ISP_IQParamTypeDef ISP_IQParamCacheInit_IMX219 = {
     },
     .demosaicing = {
         .enable = 1,
-        .type = ISP_DEMOS_TYPE_RGGB,
+        .type = IMX219_BAYER_TYPE,
         .peak = 2,
         .lineV = 4,
         .lineH = 4,
