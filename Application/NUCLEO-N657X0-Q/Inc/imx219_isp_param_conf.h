@@ -92,9 +92,20 @@ static const ISP_IQParamTypeDef ISP_IQParamCacheInit_IMX219 = {
         .enable = 1,
         .label = { "MiniLBox A", "MiniLBox TL84", "MiniLBox D65", "Free slot", "Free slot", },
         .referenceColorTemp = { 2665, 3750, 6140, 0, 0, },
-        .ispGainR = { 126000000, 157000000, 210000000, 0, 0, },
+        /* The tuning-tool gains left a strong magenta cast: a white sheet came
+         * out R/G = 1.30, B/G = 1.27 with R/B = 1.02, i.e. green short rather
+         * than red long. Solved in linear space from the AWB raw stats for that
+         * white sheet (R,G,B = 50,61,38 pre-BLC) as
+         *   coeff . diag(gain) . (raw - BLC) = k * (1,1,1)
+         * at the operating point it converges to (rb_ratio 1316, ~4333K), then
+         * scaled onto all three profiles: R x0.823, B x0.835.
+         *
+         * Measured at one operating point under one illuminant, so the A 2665K
+         * profile is extrapolated, not verified. Re-run IQTune for a real fit.
+         */
+        .ispGainR = { 88980665, 112217224, 151746699, 0, 0, },
         .ispGainG = { 100000000, 100000000, 100000000, 0, 0, },
-        .ispGainB = { 279000000, 199000000, 155000000, 0, 0, },
+        .ispGainB = { 255998419, 183090152, 143117872, 0, 0, },
         .coeff = {
             { { 277500000, -75420000, -46310000, }, { -91640000, 272360000, -29450000, }, { -1060000, -126200000, 334070000, }, },
             { { 178510000, -54460000, -19030000, }, { -46390000, 162010000, -21660000, }, { 1520000, -56399999, 168130000, }, },

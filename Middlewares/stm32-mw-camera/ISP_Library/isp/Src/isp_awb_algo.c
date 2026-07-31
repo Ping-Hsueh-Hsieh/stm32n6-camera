@@ -23,7 +23,7 @@
 /* Private types -------------------------------------------------------------*/
 /* Private constants ---------------------------------------------------------*/
 /* Debug logs control */
-//#define ALGO_AWB_DBG_LOGS
+#define ALGO_AWB_DBG_LOGS
 
 /* Interpolation ratio limit from where we decide to 'stick' to a reference profile */
 #define ISP_AWB_STICKY         0.05f
