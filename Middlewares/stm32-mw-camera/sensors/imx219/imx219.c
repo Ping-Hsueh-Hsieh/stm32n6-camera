@@ -18,6 +18,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "imx219.h"
+#include <math.h>
 #include <string.h>
 #include "util.h"
 
@@ -579,9 +580,9 @@ static int32_t imx219_set_framefmt(IMX219_Object_t* pObj, uint32_t resolution)
   uint16_t reg_y_sta_a = 752;
   uint16_t reg_y_end_a = 1711;
 
-  uint16_t frame_len = 569;
+  uint16_t frame_len = IMX219_FRAME_LENGTH;
   imx219_write_reg(&pObj->Ctx, IMX219_REG_FRM_LENGTH_A, (uint8_t*)&frame_len, 2);
-  uint16_t line_len = 3559;
+  uint16_t line_len = IMX219_LINE_LENGTH;
   imx219_write_reg(&pObj->Ctx, IMX219_REG_LINE_LENGTH_A, (uint8_t*)&line_len, 2);
 
   imx219_write_reg(&pObj->Ctx, IMX219_REG_X_ADD_STA_A, (uint8_t*)&reg_x_sta_a, 2);
@@ -759,12 +760,16 @@ int32_t IMX219_SetGain(IMX219_Object_t* pObj, int32_t gain)
     ret = IMX219_ERROR;
   } else
   {
-    // gain = 256 / (256 - X)
-    uint32_t gain_param = 256000UL - 256000UL / gain;
-    gain_param /= 1000;
-    uint8_t gain_param_u8 = (uint8_t)gain_param;
+    /* gain comes in mdB, the register holds X in gain = 256 / (256 - X) */
+    float mult = powf(10.0f, (float)gain / 20000.0f);
+    uint32_t gain_param = (uint32_t)(256.0f - 256.0f / mult + 0.5f);
 
-    gain_param_u8 = 125;  // HACK: set 125 all the time
+    if (gain_param > IMX219_ANA_GAIN_MAX)
+    {
+      gain_param = IMX219_ANA_GAIN_MAX;
+    }
+
+    uint8_t gain_param_u8 = (uint8_t)gain_param;
 
     if (imx219_write_reg(&pObj->Ctx, IMX219_REG_ANALOG_GAIN, &gain_param_u8, 1) != IMX219_OK)
     {
@@ -783,22 +788,29 @@ int32_t IMX219_SetGain(IMX219_Object_t* pObj, int32_t gain)
   */
 int32_t IMX219_SetExposure(IMX219_Object_t* pObj, int32_t exposure)
 {
-  int32_t ret = IMX219_OK;
-
-  uint8_t rate_factor = IMX219_BINNING_FAC;
-  uint16_t val = exposure / rate_factor;
-
-  val = 565;  // HACK: this might not be a good idea
-
-  if (val >= IMX219_EXPOSURE_MIN && val <= IMX219_EXPOSURE_MAX)
+  if (exposure < 0)
   {
-    return imx219_write_reg(&pObj->Ctx, IMX219_REG_EXPOSURE, (uint8_t*)&val, 2);
-  } else
-  {
-    DEV_ASSERT(0, "value out of bound");
+    return IMX219_ERROR;
   }
 
-  return ret;
+  /* exposure comes in us, the register counts lines. Clamp instead of asserting:
+   * the AEC rounds its own us value against exposure_max and may land one line
+   * above the frame length, which would stall the sensor.
+   */
+  uint32_t lines = ((uint32_t)exposure * 1000U) / IMX219_LINE_PERIOD_NS;
+
+  if (lines < 1U)
+  {
+    lines = 1U;
+  }
+  else if (lines > IMX219_EXPOSURE_MAX_LINES)
+  {
+    lines = IMX219_EXPOSURE_MAX_LINES;
+  }
+
+  uint16_t val = (uint16_t)lines;
+
+  return imx219_write_reg(&pObj->Ctx, IMX219_REG_EXPOSURE, (uint8_t*)&val, 2);
 }
 
 /**
