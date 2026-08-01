@@ -5,3 +5,4 @@
 **/*STM32N6570-DK*.*
 **/build/
 **/.cache/
+*.launch
