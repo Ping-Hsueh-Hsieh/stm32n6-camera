@@ -25,6 +25,7 @@
 #include "stm32n6xx_nucleo.h"
 #include "stm32_lcd.h"
 #include "app_fuseprogramming.h"
+#include "app_postprocess.h"
 #include "stm32_lcd_ex.h"
 #include "stai.h"
 #include "stai_network.h"
@@ -35,8 +36,6 @@
 #include "crop_img.h"
 #include "stlogo.h"
 #include "arm_math.h"
-
-CLASSES_TABLE;
 
 #define LCD_BG_WIDTH  SCREEN_WIDTH
 #define LCD_BG_HEIGHT SCREEN_HEIGHT
@@ -87,12 +86,44 @@ Rectangle_TypeDef lcd_fg_area = {
   .YSize = 0,
 };
 
+#define NUMBER_COLORS 10
+const uint32_t colors[NUMBER_COLORS] = {
+    UTIL_LCD_COLOR_GREEN,
+    UTIL_LCD_COLOR_RED,
+    UTIL_LCD_COLOR_CYAN,
+    UTIL_LCD_COLOR_MAGENTA,
+    UTIL_LCD_COLOR_YELLOW,
+    UTIL_LCD_COLOR_GRAY,
+    UTIL_LCD_COLOR_BLACK,
+    UTIL_LCD_COLOR_BROWN,
+    UTIL_LCD_COLOR_BLUE,
+    UTIL_LCD_COLOR_ORANGE
+};
+
+static uint16_t colors_u16[NUMBER_COLORS];
+DMA_HandleTypeDef handle_HPDMA1_Channel13;
+static __IO uint32_t transferCompleteDetected = 1; /* Set to 1 if transfer is correctly completed */
+static __IO uint32_t transferErrorDetected = 1;    /* Set to 1 if an error transfer is detected */
+static __IO uint32_t transferNeedClear = 0;
+static __IO int push;
+__attribute__ ((aligned (32)))
+static uint16_t line_buffer_u16[2][LCD_FG_WIDTH] = {0};
+static uint16_t line_buffer_zeros_u16[LCD_FG_WIDTH] = {0};
+
+#if POSTPROCESS_TYPE == POSTPROCESS_SSEG_DEEPLAB_V3_UI
+  sseg_deeplabv3_pp_static_param_t pp_params;
+#else
+  #error "PostProcessing type not supported"
+#endif
+
 UART_HandleTypeDef huart1;
 volatile int32_t cameraFrameReceived;
 stai_ptr nn_in;
 void *pp_input;
 char const *nn_top1_output_class_name;
 float nn_top1_output_class_proba;
+
+sseg_pp_out_t pp_output;
 
 #define ALIGN_TO_16(value) (((value) + 15) & ~15)
 
@@ -125,8 +156,7 @@ static void SystemClock_Config(void);
 static void CONSOLE_Config(void);
 static void NPURam_enable(void);
 static void NPUCache_config(void);
-static void Display_NetworkOutput(uint32_t inference_ms);
-static void Network_Postprocess(void);
+static void Display_NetworkOutput(sseg_pp_out_t *p_postprocess, uint32_t inference_ms);
 static void Bubblesort(float *prob, int *classes, int size);
 static void Display_init(void);
 static void Security_Config(void);
@@ -135,6 +165,9 @@ static void IAC_Config(void);
 static void Display_WelcomeScreen(void);
 static void Hardware_init(void);
 static void NeuralNetwork_init(uint32_t *nn_in_length, stai_ptr *nn_out, stai_size *number_output, int32_t nn_out_len[]);
+static void HPDMA1_Init(void);
+static void TransferComplete(DMA_HandleTypeDef *handle_HPDMA1_Channel13);
+static void TransferError(DMA_HandleTypeDef *handle_HPDMA1_Channel13);
 
 
 /**
@@ -160,6 +193,8 @@ int main(void)
 
   ret = stai_network_get_info(network_context, &info);
   assert(ret == STAI_SUCCESS);
+  ret = app_postprocess_init(&pp_params, &info);
+  assert(ret == 0);
   pp_input = nn_out[0];
 
   /*** Camera Init ************************************************************/
@@ -221,9 +256,10 @@ int main(void)
     assert(ret == 0);
     ts[1] = HAL_GetTick();
 
-    Network_Postprocess();
+    int32_t ret = app_postprocess_run((void **) nn_out, number_output, &pp_output, &pp_params);
+    assert(ret == 0);
 
-    Display_NetworkOutput(ts[1] - ts[0]);
+    Display_NetworkOutput(&pp_output, ts[1] - ts[0]);
     /* Discard nn_out region (used by pp_input and pp_outputs variables) to avoid Dcache evictions during nn inference */
     for (int i = 0; i < number_output; i++)
     {
@@ -275,6 +311,7 @@ static void Hardware_init(void)
 
   IAC_Config();
   set_clk_sleep_mode();
+  HPDMA1_Init();
 
 }
 
@@ -404,8 +441,9 @@ void IAC_IRQHandler(void)
 *
 * @param inference_ms inference time in ms
 */
-static void Display_NetworkOutput(uint32_t inference_ms)
+static void Display_NetworkOutput(sseg_pp_out_t *p_postprocess, uint32_t inference_ms)
 {
+  uint8_t *mask = p_postprocess->pOutBuff;
   int ret;
 
   __disable_irq();
@@ -413,38 +451,80 @@ static void Display_NetworkOutput(uint32_t inference_ms)
   assert(ret == HAL_OK);
   __enable_irq();
 
-  uint32_t color = 0x0ULL;
-  UTIL_LCD_Clear(color);
-  UTIL_LCDEx_PrintfAt(0, LINE(0), CENTER_MODE, "%s %.0f%%", nn_top1_output_class_name, nn_top1_output_class_proba * 100);
+  /* Draw post processing result */
+  int x_lcd, y_lcd;
+  float x_ratio_lcd, y_ratio_lcd, x_ratio_nn, y_ratio_nn;
+  int work=0, len_work=0;
+  uint16_t *lcd_fg_buffer_u16 = line_buffer_u16[work];
+
+  /* Display mask */
+  y_lcd = 0;
+  y_ratio_lcd = (y_lcd + 1.0f) / (float) lcd_bg_area.YSize;
+  for (int y_nn = 0; y_nn < AI_SSEG_DEEPLABV3_PP_HEIGHT; y_nn++)
+  {
+    y_ratio_nn = (y_nn + 1.0f) / (float) AI_SSEG_DEEPLABV3_PP_HEIGHT;
+
+    while (y_ratio_lcd <= y_ratio_nn)
+    {
+      x_lcd = 0;
+      x_ratio_lcd = (x_lcd + 1.0f) / (float) lcd_bg_area.XSize;
+
+      for (int x_nn = 0; x_nn < AI_SSEG_DEEPLABV3_PP_WIDTH; x_nn++)
+      {
+        x_ratio_nn = (x_nn + 1.0f) / (float) AI_SSEG_DEEPLABV3_PP_WIDTH;
+
+        while (x_ratio_lcd <= x_ratio_nn)
+        {
+          for (int i = 0; i < NB_CLASSES-1; i++)
+            if (mask[y_nn * AI_SSEG_DEEPLABV3_PP_WIDTH + x_nn] == i+1)
+            {
+              lcd_fg_buffer_u16[len_work] = colors_u16[i % NUMBER_COLORS];
+              break;
+            }
+
+          len_work++;
+
+          x_lcd++;
+          x_ratio_lcd = (x_lcd + 1.0f) / (float) lcd_bg_area.XSize;
+        }
+      }
+
+      /* Clean filled line buffer to allow DMA copy */
+      SCB_CleanDCache_by_Addr(line_buffer_u16[work], LCD_FG_WIDTH * 2);
+      /* Wait for DMA transfer to end */
+      while (!transferCompleteDetected);
+
+      /* End of mask line : update variables */
+      push = work;
+      work = 1 - work;
+      len_work = 0;
+      lcd_fg_buffer_u16 = line_buffer_u16[work];
+
+      /* Start DMA copy */
+      transferCompleteDetected = 0;
+      transferNeedClear = 1;
+      ret = HAL_DMA_Start_IT(&handle_HPDMA1_Channel13,
+                             (uint32_t) line_buffer_u16[push],
+                             (uint32_t) &lcd_fg_buffer[lcd_fg_buffer_rd_idx][(y_lcd * LCD_FG_WIDTH)*2],
+                             LCD_FG_WIDTH * 2);
+      assert(ret == HAL_OK);
+
+      y_lcd++;
+      y_ratio_lcd = (y_lcd + 1.0f) / (float) lcd_bg_area.YSize;
+    }
+  }
+
+  UTIL_LCD_SetBackColor(0x40000000);
   UTIL_LCDEx_PrintfAt(0, LINE(18), CENTER_MODE, "Inference: %ums", inference_ms);
+  UTIL_LCD_SetBackColor(0);
 
   Display_WelcomeScreen();
 
-  SCB_CleanDCache_by_Addr(lcd_fg_buffer[lcd_fg_buffer_rd_idx], LCD_FG_FRAMEBUFFER_SIZE);
   __disable_irq();
   ret = SCRL_ReloadLayer(SCRL_LAYER_1);
   assert(ret == HAL_OK);
   __enable_irq();
   lcd_fg_buffer_rd_idx = 1 - lcd_fg_buffer_rd_idx;
-}
-
-/**
- * @brief Run post-processing operation
- */
-void Network_Postprocess(void)
-{
-  int ranking[NB_CLASSES];
-
-  /**Perform ranking**/
-  for (int i = 0; i < NB_CLASSES; i++)
-  {
-    ranking[i] = i;
-  }
-
-  Bubblesort((float *) (pp_input), ranking, NB_CLASSES);
-
-  nn_top1_output_class_name = classes_table[ranking[0]];
-  nn_top1_output_class_proba = *((float *) (pp_input));
 }
 
 /**
@@ -522,8 +602,15 @@ static void Display_init(void)
   UTIL_LCD_SetLayer(SCRL_LAYER_1);
   UTIL_LCD_Clear(UTIL_LCD_COLOR_TRANSPARENT);
   UTIL_LCD_SetFont(&Font12);
-  UTIL_LCD_SetBackColor(0x40000000);
   UTIL_LCD_SetTextColor(UTIL_LCD_COLOR_WHITE);
+
+  for (int i = 0; i < NUMBER_COLORS; i++)
+  {
+    colors_u16[i] = 0x4000; /* Alpha */
+    colors_u16[i] |= (colors[i] & 0x000000f0) << 4; /* B */
+    colors_u16[i] |= (colors[i] & 0x0000f000) >> 8; /* G */
+    colors_u16[i] |= (colors[i] & 0x00f00000) >> 20; /* R */
+  }
 }
 
 /**
@@ -541,10 +628,12 @@ static void Display_WelcomeScreen(void)
     UTIL_LCD_FillRGBRect((lcd_bg_area.XSize-200)/2, 54, (uint8_t *) stlogo, 200, 107);
 
     /* Display welcome message */
-    UTIL_LCDEx_PrintfAt(0, LINE(15), CENTER_MODE, "Image Classification");
+    UTIL_LCD_SetBackColor(0x40000000);
+    UTIL_LCDEx_PrintfAt(0, LINE(15), CENTER_MODE, "Semantic Segmentation");
     UTIL_LCDEx_PrintfAt(0, LINE(16), CENTER_MODE, WELCOME_MSG_1);
     UTIL_LCDEx_PrintfAt(0, LINE(17), CENTER_MODE, WELCOME_MSG_2[0]);
     UTIL_LCDEx_PrintfAt(0, LINE(18), CENTER_MODE, WELCOME_MSG_2[1]);
+    UTIL_LCD_SetBackColor(0);
   }
 }
 
@@ -756,6 +845,88 @@ void npu_cache_disable_clocks_and_reset(void)
   __HAL_RCC_CACHEAXIRAM_MEM_CLK_DISABLE();
   __HAL_RCC_CACHEAXI_CLK_DISABLE();
   __HAL_RCC_CACHEAXI_FORCE_RESET();
+}
+
+/**
+  * @brief HPDMA1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void HPDMA1_Init(void)
+{
+  DMA_IsolationConfigTypeDef IsolationConfiginput;
+
+  /* Peripheral clock enable */
+  __HAL_RCC_HPDMA1_CLK_ENABLE();
+
+  /* HPDMA1 interrupt Init */
+  HAL_NVIC_SetPriority(HPDMA1_Channel13_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(HPDMA1_Channel13_IRQn);
+
+  handle_HPDMA1_Channel13.Instance = HPDMA1_Channel13;
+  handle_HPDMA1_Channel13.Init.Request = DMA_REQUEST_SW;
+  handle_HPDMA1_Channel13.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+  handle_HPDMA1_Channel13.Init.Direction = DMA_MEMORY_TO_MEMORY;
+  handle_HPDMA1_Channel13.Init.SrcInc = DMA_SINC_INCREMENTED;
+  handle_HPDMA1_Channel13.Init.DestInc = DMA_DINC_INCREMENTED;
+  handle_HPDMA1_Channel13.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
+  handle_HPDMA1_Channel13.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
+  handle_HPDMA1_Channel13.Init.Priority = DMA_HIGH_PRIORITY;
+  handle_HPDMA1_Channel13.Init.SrcBurstLength = 2;
+  handle_HPDMA1_Channel13.Init.DestBurstLength = 2;
+  handle_HPDMA1_Channel13.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
+  handle_HPDMA1_Channel13.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+  handle_HPDMA1_Channel13.Init.Mode = DMA_NORMAL;
+  assert(HAL_DMA_Init(&handle_HPDMA1_Channel13) == HAL_OK);
+  assert(HAL_DMA_ConfigChannelAttributes(&handle_HPDMA1_Channel13, DMA_CHANNEL_PRIV|DMA_CHANNEL_SEC
+                              |DMA_CHANNEL_SRC_SEC|DMA_CHANNEL_DEST_SEC) == HAL_OK);
+
+  /* DMA channel */
+  IsolationConfiginput.CidFiltering =  DMA_ISOLATION_ON;
+  IsolationConfiginput.StaticCid = DMA_CHANNEL_STATIC_CID_1;
+
+  assert(HAL_DMA_SetIsolationAttributes(&handle_HPDMA1_Channel13 , &IsolationConfiginput) == HAL_OK);
+
+  /* Select Callbacks functions called after Transfer complete and Transfer error */
+  HAL_DMA_RegisterCallback(&handle_HPDMA1_Channel13, HAL_DMA_XFER_CPLT_CB_ID, TransferComplete);
+  HAL_DMA_RegisterCallback(&handle_HPDMA1_Channel13, HAL_DMA_XFER_ERROR_CB_ID, TransferError);
+}
+
+/**
+  * @brief  DMA conversion complete callback
+  * @note   This function is executed when the transfer complete interrupt
+  *         is generated
+  * @retval None
+  */
+static void TransferComplete(DMA_HandleTypeDef *hhpdma)
+{
+  if (transferNeedClear)
+  {
+    /* When data is copied into lcd_fg_buffer, clear line_buffer_u16 with zeros */
+    int ret = HAL_DMA_Start_IT(&handle_HPDMA1_Channel13,
+                             (uint32_t) line_buffer_zeros_u16,
+                             (uint32_t) line_buffer_u16[push],
+                             LCD_FG_WIDTH * 2);
+    assert(ret == HAL_OK);
+    transferNeedClear = 0;
+  }
+  else
+  {
+    /* When line_buffer_u16 is cleared, DMA transfer is over */
+    SCB_InvalidateDCache_by_Addr(line_buffer_u16[push], LCD_FG_WIDTH * 2);
+    transferCompleteDetected = 1;
+  }
+}
+
+/**
+  * @brief  DMA conversion error callback
+  * @note   This function is executed when the transfer error interrupt
+  *         is generated during DMA transfer
+  * @retval None
+  */
+static void TransferError(DMA_HandleTypeDef *handle_HPDMA1_Channel13)
+{
+  transferErrorDetected = 1;
 }
 
 #ifdef  USE_FULL_ASSERT

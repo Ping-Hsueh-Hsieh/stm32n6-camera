@@ -156,3 +156,13 @@ void DCMIPP_IRQHandler(void)
   DCMIPP_HandleTypeDef *hcamera_dcmipp = CMW_CAMERA_GetDCMIPPHandle();
   HAL_DCMIPP_IRQHandler(hcamera_dcmipp);
 }
+
+extern DMA_HandleTypeDef handle_HPDMA1_Channel13;
+
+/**
+  * @brief This function handles HPDMA1 Channel 12 global interrupt.
+  */
+void HPDMA1_Channel13_IRQHandler(void)
+{
+  HAL_DMA_IRQHandler(&handle_HPDMA1_Channel13);
+}

@@ -2,7 +2,7 @@
 
 set -eu # Exit on any error, Exit on unset variable
 
-stedgeai generate --model efficientnet_v2B1_240_fft_qdq_int8.onnx --target stm32n6 --st-neural-art default@user_neuralart_STM32N6570-DK.json --input-data-type uint8 --output-data-type float32 --inputs-ch-position chlast
+stedgeai generate --model deeplab_v3_mobilenetv2_05_16_320_fft_qdq_int8.onnx --target stm32n6 --st-neural-art default@user_neuralart_STM32N6570-DK.json --input-data-type uint8 --output-data-type int8 --inputs-ch-position chlast --outputs-ch-position chlast
 
 cp st_ai_output/network.c STM32N6570-DK/
 cp st_ai_output/network_ecblobs.h STM32N6570-DK/
