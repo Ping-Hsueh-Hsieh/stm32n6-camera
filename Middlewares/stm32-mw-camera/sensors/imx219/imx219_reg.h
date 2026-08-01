@@ -108,19 +108,38 @@ extern "C" {
 #define IMX219_DGTL_GAIN_DEFAULT 0x0100
 #define IMX219_DGTL_GAIN_STEP 1
 
-/* Exposure control */
+/* Mode timing. Must stay in sync with the values written by imx219_set_framefmt().
+ * VT pixel clock = XCLK / PREPLLCK_VT_DIV * PLL_VT_MPY / VTPXCK_DIV
+ *                = 24MHz / 3 * 57 / 5 = 91.2MHz
+ */
+#define IMX219_PREPLLCK_VT_DIV_VAL 3
+#define IMX219_PLL_VT_MPY_VAL 57
+#define IMX219_VTPXCK_DIV_VAL 5
+#define IMX219_VTPXCK_FREQ                                                     \
+  (IMX219_XCLK_FREQ / IMX219_PREPLLCK_VT_DIV_VAL * IMX219_PLL_VT_MPY_VAL /     \
+   IMX219_VTPXCK_DIV_VAL)
+
+#define IMX219_LINE_LENGTH 3559  /* LINE_LENGTH_A */
+#define IMX219_FRAME_LENGTH 569  /* FRM_LENGTH_A, gives 22.2ms -> 45.0fps */
+
+/* One line is 3559 / 91.2MHz = 39.024us. Kept in ns to stay on integers. */
+#define IMX219_LINE_PERIOD_NS                                                  \
+  ((uint32_t)((IMX219_LINE_LENGTH * 1000000000ULL) / IMX219_VTPXCK_FREQ))
+
+/* Exposure control.
+ * The ISP middleware expresses exposure in us (see isp_ae_algo.c), the sensor
+ * register counts lines, so IMX219_SetExposure() converts between the two.
+ */
 #define IMX219_REG_EXPOSURE CCI_REG16(0x015a)
-#define IMX219_EXPOSURE_MIN (0x0001)
 #define IMX219_EXPOSURE_STEP 1
 #define IMX219_EXPOSURE_DEFAULT 0x640
-#define IMX219_MAX_COARSE_DIFF 4
-#define IMX219_MAX_FRAME_LENGTH (0xFFFF)
-#define IMX219_EXPOSURE_MAX (IMX219_MAX_FRAME_LENGTH-IMX219_MAX_COARSE_DIFF)
 #define IMX219_EXPOSURE_OFFSET 4
+#define IMX219_EXPOSURE_MAX_LINES (IMX219_FRAME_LENGTH - IMX219_EXPOSURE_OFFSET)
 
-#define IMX219_DEFAULT_GAIN IMX219_GAIN_MIN
-#define IMX219_DEFAULT_FRAME_LENGTH (0x09C3)
-#define IMX219_DEFAULT_EXPOSURE_COARSE (IMX219_DEFAULT_FRAME_LENGTH - IMX219_MAX_COARSE_DIFF)
+/* 1 line = 40us (rounded up), 565 lines = 22048us */
+#define IMX219_EXPOSURE_MIN ((IMX219_LINE_PERIOD_NS + 999U) / 1000U)
+#define IMX219_EXPOSURE_MAX                                                    \
+  ((IMX219_EXPOSURE_MAX_LINES * IMX219_LINE_PERIOD_NS) / 1000U)
 
 /* V_TIMING internal */
 #define IMX219_REG_FRM_LENGTH_A CCI_REG16(0x0160)
@@ -205,12 +224,14 @@ extern "C" {
 #define IMX219_NAME               "IMX219"
 #define IMX219_BAYER_PATTERN      0 /* From ISP definition RGGB / TODO comnon enumeration in camera */
 #define IMX219_COLOR_DEPTH        10 /* in bits */
-#define IMX219_GAIN_SHIFT		8
 
-#define IMX219_GAIN_MIN (1 << IMX219_GAIN_SHIFT)
-#define IMX219_GAIN_MAX (16 << IMX219_GAIN_SHIFT)
-
-#define IMX219_AGAIN_MAX          (10625)
+/* Gains exchanged with the ISP middleware are in mdB (see isp_ae_algo.c, which
+ * does gain -> linear with pow(10, gain / 20000)). The analog gain register
+ * gives 256 / (256 - X) with X in [0, 232], so 1.00x .. 10.67x = 0 .. 20560 mdB.
+ */
+#define IMX219_GAIN_MIN           (0)
+#define IMX219_AGAIN_MAX          (20560)
+#define IMX219_GAIN_MAX           IMX219_AGAIN_MAX
 
 #define IMX219_REG_SOFTWARE_RESET (0x0103)
 
