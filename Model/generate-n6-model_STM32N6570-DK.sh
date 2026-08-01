@@ -2,7 +2,7 @@
 
 set -eu # Exit on any error, Exit on unset variable
 
-stedgeai generate --model efficientnet_v2B1_240_fft_qdq_int8.onnx --target stm32n6 --st-neural-art default@user_neuralart_STM32N6570-DK.json --input-data-type uint8 --output-data-type float32 --inputs-ch-position chlast
+stedgeai generate --model blazeface_front_128_quant_pc_ff_od_wider_face.tflite --target stm32n6 --st-neural-art default@user_neuralart_STM32N6570-DK.json --input-data-type uint8 --output-data-type int8
 
 cp st_ai_output/network.c STM32N6570-DK/
 cp st_ai_output/network_ecblobs.h STM32N6570-DK/

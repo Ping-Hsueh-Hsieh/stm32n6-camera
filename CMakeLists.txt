@@ -76,6 +76,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 target_include_directories(${PROJECT_NAME}
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/NUCLEO-N657X0-Q/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ai-postprocessing-wrapper
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/screenl/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/screenl/Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/screenl/ili9341
@@ -88,11 +89,8 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Misc/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Npu/Devices/SR6P3E
-    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Npu/Devices/SR6P3E/ATON-idxs.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Npu/Devices/STM32H7xx
-    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Npu/Devices/STM32H7xx/ATON-idxs.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Npu/Devices/STM32N6xx
-    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Npu/Devices/STM32N6xx/ATON-idxs.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Npu/ll_aton
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/Reloc/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stedgeai-lib/SystemPerformance/Inc
@@ -101,13 +99,16 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/ISP_Library/isp/USBX/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/ISP_Library/isp_param_conf
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors
-    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/imx335
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/imx219
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/imx335
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/ov5640
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/vd1943
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/vd55g1
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-mw-camera/sensors/vd6g
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-vision-models-postprocessing/lib_vision_models_pp/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/stm32-vision-models-postprocessing/lib_vision_models_pp/Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Model/NUCLEO-N657X0-Q
+    ${CMAKE_CURRENT_SOURCE_DIR}/Model_/NUCLEO-N657X0-Q
     ${CMAKE_CURRENT_SOURCE_DIR}/STM32Cube_FW_N6/Drivers/BSP/Components/Common
     ${CMAKE_CURRENT_SOURCE_DIR}/STM32Cube_FW_N6/Drivers/BSP/Components/aps256xx
     ${CMAKE_CURRENT_SOURCE_DIR}/STM32Cube_FW_N6/Drivers/BSP/Components/mx25um51245g

@@ -86,6 +86,8 @@
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/ports/generic/inc"/>
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/common/usbx_device_classes/inc"/>
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/common/usbx_stm32_device_controllers"/>
+									<listOptionValue builtIn="false" value="../../../../Middlewares/ai-postprocessing-wrapper"/>
+									<listOptionValue builtIn="false" value="../../../../Middlewares/stm32-vision-models-postprocessing/lib_vision_models_pp/Inc"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/Inc"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/ili9341"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/uvcl/Inc"/>
@@ -223,6 +225,8 @@
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/ports/generic/inc"/>
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/common/usbx_device_classes/inc"/>
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/common/usbx_stm32_device_controllers"/>
+									<listOptionValue builtIn="false" value="../../../../Middlewares/ai-postprocessing-wrapper"/>
+									<listOptionValue builtIn="false" value="../../../../Middlewares/stm32-vision-models-postprocessing/lib_vision_models_pp/Inc"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/Inc"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/ili9341"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/uvcl/Inc"/>
@@ -355,6 +359,8 @@
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/ports/generic/inc"/>
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/common/usbx_device_classes/inc"/>
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/common/usbx_stm32_device_controllers"/>
+									<listOptionValue builtIn="false" value="../../../../Middlewares/ai-postprocessing-wrapper"/>
+									<listOptionValue builtIn="false" value="../../../../Middlewares/stm32-vision-models-postprocessing/lib_vision_models_pp/Inc"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/Inc"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/ili9341"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/uvcl/Inc"/>
@@ -488,6 +494,8 @@
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/ports/generic/inc"/>
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/common/usbx_device_classes/inc"/>
 									<listOptionValue builtIn="false" value="../../../../STM32Cube_FW_N6/Middlewares/ST/usbx/common/usbx_stm32_device_controllers"/>
+									<listOptionValue builtIn="false" value="../../../../Middlewares/ai-postprocessing-wrapper"/>
+									<listOptionValue builtIn="false" value="../../../../Middlewares/stm32-vision-models-postprocessing/lib_vision_models_pp/Inc"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/Inc"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/ili9341"/>
 									<listOptionValue builtIn="false" value="../../../../Middlewares/screenl/uvcl/Inc"/>

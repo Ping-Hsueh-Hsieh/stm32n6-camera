@@ -25,6 +25,7 @@
 #include "stm32n6xx_nucleo.h"
 #include "stm32_lcd.h"
 #include "app_fuseprogramming.h"
+#include "app_postprocess.h"
 #include "stm32_lcd_ex.h"
 #include "stai.h"
 #include "stai_network.h"
@@ -35,6 +36,7 @@
 #include "crop_img.h"
 #include "stlogo.h"
 #include "arm_math.h"
+#include "util.h"
 
 CLASSES_TABLE;
 
@@ -54,6 +56,21 @@ CLASSES_TABLE;
 #define APP_VERSION_STRING "unversioned"
 #endif
 
+#define CIRCLE_RADIUS 3
+
+#define NUMBER_COLORS 10
+const uint32_t colors[NUMBER_COLORS] = {
+    UTIL_LCD_COLOR_GREEN,
+    UTIL_LCD_COLOR_RED,
+    UTIL_LCD_COLOR_CYAN,
+    UTIL_LCD_COLOR_MAGENTA,
+    UTIL_LCD_COLOR_YELLOW,
+    UTIL_LCD_COLOR_GRAY,
+    UTIL_LCD_COLOR_BLACK,
+    UTIL_LCD_COLOR_BROWN,
+    UTIL_LCD_COLOR_BLUE,
+    UTIL_LCD_COLOR_ORANGE
+};
 
 typedef struct
 {
@@ -91,6 +108,8 @@ UART_HandleTypeDef huart1;
 volatile int32_t cameraFrameReceived;
 stai_ptr nn_in;
 void *pp_input;
+fd_blazeface_pp_static_param_t pp_params;
+fd_pp_out_t pp_output;
 char const *nn_top1_output_class_name;
 float nn_top1_output_class_proba;
 
@@ -125,7 +144,7 @@ static void SystemClock_Config(void);
 static void CONSOLE_Config(void);
 static void NPURam_enable(void);
 static void NPUCache_config(void);
-static void Display_NetworkOutput(uint32_t inference_ms);
+static void Display_NetworkOutput(fd_pp_out_t *p_postprocess, uint32_t inference_ms);
 static void Network_Postprocess(void);
 static void Bubblesort(float *prob, int *classes, int size);
 static void Display_init(void);
@@ -161,6 +180,7 @@ int main(void)
   ret = stai_network_get_info(network_context, &info);
   assert(ret == STAI_SUCCESS);
   pp_input = nn_out[0];
+  app_postprocess_init(&pp_params, &info);
 
   /*** Camera Init ************************************************************/
   uint32_t pitch_nn = 0;
@@ -221,9 +241,12 @@ int main(void)
     assert(ret == 0);
     ts[1] = HAL_GetTick();
 
-    Network_Postprocess();
+    // Network_Postprocess();
+    int32_t ret = app_postprocess_run((void **) nn_out, number_output, &pp_output, &pp_params);
+    if (ret < 0) UNREACHABLE("app_postprocess_run");
 
-    Display_NetworkOutput(ts[1] - ts[0]);
+    // Display_NetworkOutput(ts[1] - ts[0]);
+    Display_NetworkOutput(&pp_output, ts[1] - ts[0]);
     /* Discard nn_out region (used by pp_input and pp_outputs variables) to avoid Dcache evictions during nn inference */
     for (int i = 0; i < number_output; i++)
     {
@@ -399,13 +422,93 @@ void IAC_IRQHandler(void)
   }
 }
 
+/* Display functions */
+static int clamp_point(int *x, int *y)
+{
+  int xi = *x;
+  int yi = *y;
+
+  if (*x < 0)
+    *x = 0;
+  if (*y < 0)
+    *y = 0;
+  if (*x >= lcd_bg_area.XSize)
+    *x = lcd_bg_area.XSize - 1;
+  if (*y >= lcd_bg_area.YSize)
+    *y = lcd_bg_area.YSize - 1;
+
+  return (xi != *x) || (yi != *y);
+}
+
+static void convert_length(float32_t wi, float32_t hi, int *wo, int *ho)
+{
+  *wo = lcd_bg_area.XSize * wi;
+  *ho = lcd_bg_area.YSize * hi;
+}
+
+static void convert_point(float32_t xi, float32_t yi, int *xo, int *yo)
+{
+  *xo = lcd_bg_area.XSize * xi + lcd_bg_area.X0;
+  *yo = lcd_bg_area.YSize * yi + lcd_bg_area.Y0;
+}
+
+static void Display_keypoint(fd_pp_keyPoints_t *key, uint32_t color)
+{
+  int is_clamp;
+  int xc, yc;
+  int x, y;
+
+  convert_point(key->x, key->y, &x, &y);
+  xc = x - CIRCLE_RADIUS / 2;
+  yc = y - CIRCLE_RADIUS / 2;
+  is_clamp = clamp_point(&xc, &yc);
+  xc = x + CIRCLE_RADIUS / 2;
+  yc = y + CIRCLE_RADIUS / 2;
+  is_clamp |= clamp_point(&xc, &yc);
+
+  if (is_clamp)
+    return ;
+
+  UTIL_LCD_FillCircle(x, y, CIRCLE_RADIUS, color);
+}
+
+void Display_Face(fd_pp_outBuffer_t *detect)
+{
+  int xc, yc;
+  int x0, y0;
+  int x1, y1;
+  int w, h;
+  int i;
+
+  convert_point(detect->x_center, detect->y_center, &xc, &yc);
+  convert_length(detect->width, detect->height, &w, &h);
+  x0 = xc - (w + 1) / 2;
+  y0 = yc - (h + 1) / 2;
+  x1 = xc + (w + 1) / 2;
+  y1 = yc + (h + 1) / 2;
+  clamp_point(&x0, &y0);
+  clamp_point(&x1, &y1);
+
+  UTIL_LCD_DrawRect(x0, y0, x1 - x0, y1 - y0, colors[detect->class_index % NUMBER_COLORS]);
+
+#if POSTPROCESS_TYPE == POSTPROCESS_FD_BLAZEFACE_UI
+  for (i = 0; i < AI_FD_BLAZEFACE_PP_NB_KEYPOINTS; i++)
+#elif POSTPROCESS_TYPE == POSTPROCESS_FD_YUNET_UI
+  for (i = 0; i < AI_FD_YUNET_PP_NB_KEYPOINTS; i++)
+#endif
+    Display_keypoint(&detect->pKeyPoints[i], UTIL_LCD_COLOR_YELLOW);
+}
+
 /**
 * @brief Display Neural Network output classification results as well as other performances informations
 *
 * @param inference_ms inference time in ms
 */
-static void Display_NetworkOutput(uint32_t inference_ms)
+static void Display_NetworkOutput(fd_pp_out_t *p_postprocess, uint32_t inference_ms)
 {
+
+  fd_pp_outBuffer_t *rois = p_postprocess->pOutBuff;
+  uint32_t nb_rois = p_postprocess->nb_detect;
   int ret;
 
   __disable_irq();
@@ -413,10 +516,18 @@ static void Display_NetworkOutput(uint32_t inference_ms)
   assert(ret == HAL_OK);
   __enable_irq();
 
-  uint32_t color = 0x0ULL;
-  UTIL_LCD_Clear(color);
-  UTIL_LCDEx_PrintfAt(0, LINE(0), CENTER_MODE, "%s %.0f%%", nn_top1_output_class_name, nn_top1_output_class_proba * 100);
-  UTIL_LCDEx_PrintfAt(0, LINE(18), CENTER_MODE, "Inference: %ums", inference_ms);
+  /* Draw bounding boxes */
+  UTIL_LCD_FillRect(0, 0, lcd_fg_area.XSize, lcd_fg_area.YSize, UTIL_LCD_COLOR_TRANSPARENT); /* Clear previous boxes */
+  for (int32_t i = 0; i < nb_rois; i++)
+  {
+    Display_Face(&rois[i]);
+  }
+
+  UTIL_LCD_SetBackColor(0x40000000);
+  UTIL_LCDEx_PrintfAt(0, LINE(0), LEFT_MODE, "Inference");
+  UTIL_LCDEx_PrintfAt(0, LINE(1), LEFT_MODE, "%ums", inference_ms);
+  UTIL_LCDEx_PrintfAt(0, LINE(0), RIGHT_MODE, "Objects %u", nb_rois);
+  UTIL_LCD_SetBackColor(0);
 
   Display_WelcomeScreen();
 

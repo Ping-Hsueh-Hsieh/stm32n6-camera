@@ -2,7 +2,7 @@
 
 set -eu # Exit on any error, Exit on unset variable
 
-stedgeai generate --model mobilenet_v1_0.25_96_tfs_int8.tflite --target stm32n6 --st-neural-art default@user_neuralart_NUCLEO-N657X0-Q.json --input-data-type uint8
+stedgeai generate --model blazeface_front_128_quant_pc_ff_od_wider_face.tflite --target stm32n6 --st-neural-art default@user_neuralart_NUCLEO-N657X0-Q.json --input-data-type uint8 --output-data-type int8
 
 cp st_ai_output/network.c NUCLEO-N657X0-Q/
 cp st_ai_output/network_ecblobs.h NUCLEO-N657X0-Q/

@@ -66,6 +66,21 @@
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stedgeai-lib/Npu/Devices/STM32N6xx/mcu_cache.c</locationURI>
 		</link>
+        <link>
+            <name>Application/app_postprocess_fd_blazeface_ui.c</name>
+            <type>1</type>
+            <locationURI>PARENT-3-PROJECT_LOC/Middlewares/ai-postprocessing-wrapper/app_postprocess_fd_blazeface_ui.c</locationURI>
+        </link>
+		<link>
+			<name>stm32-vision-models-postprocessing/vision_models_pp.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stm32-vision-models-postprocessing/lib_vision_models_pp/Src/vision_models_pp.c</locationURI>
+		</link>
+		<link>
+			<name>stm32-vision-models-postprocessing/fd_pp_blazeface.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Middlewares/stm32-vision-models-postprocessing/lib_vision_models_pp/Src/fd_pp_blazeface.c</locationURI>
+		</link>
 		<link>
 			<name>Application/network.c</name>
 			<type>1</type>
