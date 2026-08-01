@@ -27,3 +27,8 @@ Thanks to [decode from raspberry pi](https://forum.arduino.cc/t/raspberry-pi-cam
 # Original Repo from ST
 
 [STM32N6-GettingStarted-ImageClassification](https://github.com/STMicroelectronics/STM32N6-GettingStarted-ImageClassification?tab=License-1-ov-file)
+
+# ST AI Ecosystem
+
+https://www.st.com/en/development-tools/stm32n6-ai.html
+https://www.st.com/content/st_com/en/st-edge-ai-suite/tools.html
