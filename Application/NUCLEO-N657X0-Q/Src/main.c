@@ -91,10 +91,30 @@ UART_HandleTypeDef huart1;
 volatile int32_t cameraFrameReceived;
 stai_ptr nn_in;
 void *pp_input;
-char const *nn_top1_output_class_name;
-float nn_top1_output_class_proba;
+static float nn_out_scale;
+static int16_t nn_out_zp;
 
 #define ALIGN_TO_16(value) (((value) + 15) & ~15)
+
+#define YOLO_ANCHORS    189
+#define YOLO_NC         80
+#define YOLO_CONF       0.25f
+#define YOLO_IOU        0.45f
+#define YOLO_MAX        10
+#define NN_IMG_SIZE     96
+
+typedef struct
+{
+  uint16_t x;
+  uint16_t y;
+  uint16_t w;
+  uint16_t h;
+  uint16_t cls;
+  float score;
+} DetBox_t;
+
+static DetBox_t detections[YOLO_MAX];
+static uint16_t detection_count;
 
 /* When NN input dimensions are not a multiple of 16, the DCMIPP output needs cropping */
 #if (STAI_NETWORK_IN_1_WIDTH * STAI_NETWORK_IN_1_CHANNEL) != ALIGN_TO_16(STAI_NETWORK_IN_1_WIDTH * STAI_NETWORK_IN_1_CHANNEL)
@@ -127,7 +147,7 @@ static void NPURam_enable(void);
 static void NPUCache_config(void);
 static void Display_NetworkOutput(uint32_t inference_ms);
 static void Network_Postprocess(void);
-static void Bubblesort(float *prob, int *classes, int size);
+static float Compute_IoU(DetBox_t *a, DetBox_t *b);
 static void Display_init(void);
 static void Security_Config(void);
 static void set_clk_sleep_mode(void);
@@ -161,6 +181,8 @@ int main(void)
   ret = stai_network_get_info(network_context, &info);
   assert(ret == STAI_SUCCESS);
   pp_input = nn_out[0];
+  nn_out_scale = info.outputs[0].scale.data[0];
+  nn_out_zp = info.outputs[0].zeropoint.data[0];
 
   /*** Camera Init ************************************************************/
   uint32_t pitch_nn = 0;
@@ -213,6 +235,9 @@ int main(void)
     SCB_InvalidateDCache_by_Addr(dcmipp_out_nn, sizeof(dcmipp_out_nn));
     img_crop(dcmipp_out_nn, nn_in, pitch_nn, STAI_NETWORK_IN_1_WIDTH, STAI_NETWORK_IN_1_HEIGHT, STAI_NETWORK_IN_1_CHANNEL);
     SCB_CleanInvalidateDCache_by_Addr(nn_in, nn_in_len);
+#else
+    /* The DCMIPP feeds the U8 CHANNEL_LAST RGB888 frame directly into the NN input */
+    SCB_InvalidateDCache_by_Addr(nn_in, nn_in_len);
 #endif
 
     ts[0] = HAL_GetTick();
@@ -413,10 +438,26 @@ static void Display_NetworkOutput(uint32_t inference_ms)
   assert(ret == HAL_OK);
   __enable_irq();
 
-  uint32_t color = 0x0ULL;
-  UTIL_LCD_Clear(color);
-  UTIL_LCDEx_PrintfAt(0, LINE(0), CENTER_MODE, "%s %.0f%%", nn_top1_output_class_name, nn_top1_output_class_proba * 100);
-  UTIL_LCDEx_PrintfAt(0, LINE(18), CENTER_MODE, "Inference: %ums", inference_ms);
+  UTIL_LCD_Clear(0x0ULL);
+
+  /* Scale boxes from the 96x96 NN input to the LCD foreground area */
+  float sx = (float)LCD_FG_WIDTH / NN_IMG_SIZE;
+  float sy = (float)LCD_FG_HEIGHT / NN_IMG_SIZE;
+
+  for (int i = 0; i < detection_count; i++)
+  {
+    uint32_t x = (uint32_t)(detections[i].x * sx);
+    uint32_t y = (uint32_t)(detections[i].y * sy);
+    uint32_t w = (uint32_t)(detections[i].w * sx);
+    uint32_t h = (uint32_t)(detections[i].h * sy);
+
+    UTIL_LCD_SetTextColor(UTIL_LCD_COLOR_YELLOW);
+    UTIL_LCD_DrawRect(x, y, w, h, UTIL_LCD_COLOR_YELLOW);
+    UTIL_LCDEx_PrintfAt(x, y, LEFT_MODE, "%s %.0f%%", classes_table[detections[i].cls], detections[i].score * 100);
+  }
+
+  UTIL_LCD_SetTextColor(UTIL_LCD_COLOR_WHITE);
+  UTIL_LCDEx_PrintfAt(0, LINE(18), CENTER_MODE, "%d object(s) | Inference: %ums", detection_count, inference_ms);
 
   Display_WelcomeScreen();
 
@@ -429,47 +470,100 @@ static void Display_NetworkOutput(uint32_t inference_ms)
 }
 
 /**
- * @brief Run post-processing operation
+ * @brief Compute Intersection over Union between two detections
  */
-void Network_Postprocess(void)
+static float Compute_IoU(DetBox_t *a, DetBox_t *b)
 {
-  int ranking[NB_CLASSES];
+  uint32_t x0 = (a->x > b->x) ? a->x : b->x;
+  uint32_t y0 = (a->y > b->y) ? a->y : b->y;
+  uint32_t x1 = ((a->x + a->w) < (b->x + b->w)) ? (a->x + a->w) : (b->x + b->w);
+  uint32_t y1 = ((a->y + a->h) < (b->y + b->h)) ? (a->y + a->h) : (b->y + b->h);
 
-  /**Perform ranking**/
-  for (int i = 0; i < NB_CLASSES; i++)
-  {
-    ranking[i] = i;
-  }
+  uint32_t inter = ((x1 > x0) && (y1 > y0)) ? (x1 - x0) * (y1 - y0) : 0;
+  uint32_t union_area = a->w * a->h + b->w * b->h - inter;
 
-  Bubblesort((float *) (pp_input), ranking, NB_CLASSES);
-
-  nn_top1_output_class_name = classes_table[ranking[0]];
-  nn_top1_output_class_proba = *((float *) (pp_input));
+  return (union_area > 0) ? ((float)inter / (float)union_area) : 0.0f;
 }
 
 /**
- * @brief Bubble sorting algorithm on probabilities
- * @param prob pointer to probabilities buffer
- * @param classes pointer to classes buffer
- * @param size numer of values
+ * @brief Decode YOLOv8 detections from the network output
+ *
+ * The network output is a quantized S8 tensor [84][189] (CHW, scale 0.5163115
+ * zero point -128): the first 4 rows hold the decoded box coordinates
+ * (cx, cy, w, h) expressed in the 96x96 input image, rows 4..83 hold the
+ * already sigmoided scores of the 80 COCO classes. 189 is the number of
+ * anchors (12x12 + 6x6 + 3x3). Values are dequantized with
+ * real = (q - zp) * scale.
  */
-static void Bubblesort(float *prob, int *classes, int size)
+void Network_Postprocess(void)
 {
-  float p;
-  int c;
+  const int8_t *out = (const int8_t *)pp_input;
+  const float scale = nn_out_scale;
+  const int32_t zp = nn_out_zp;
 
-  for (int i = 0; i < size; i++)
+  detection_count = 0;
+
+  for (int i = 0; i < YOLO_ANCHORS; i++)
   {
-    for (int ii = 0; ii < size - i - 1; ii++)
+    uint16_t best_cls = 0;
+    float best_score = 0.0f;
+
+    for (int c = 0; c < YOLO_NC; c++)
     {
-      if (prob[ii] < prob[ii + 1])
+      float s = ((float)out[(4 + c) * YOLO_ANCHORS + i] - zp) * scale;
+      if (s > best_score)
       {
-        p = prob[ii];
-        prob[ii] = prob[ii + 1];
-        prob[ii + 1] = p;
-        c = classes[ii];
-        classes[ii] = classes[ii + 1];
-        classes[ii + 1] = c;
+        best_score = s;
+        best_cls = c;
+      }
+    }
+
+    if (best_score < YOLO_CONF)
+      continue;
+
+    float cx = ((float)out[0 * YOLO_ANCHORS + i] - zp) * scale;
+    float cy = ((float)out[1 * YOLO_ANCHORS + i] - zp) * scale;
+    float w = ((float)out[2 * YOLO_ANCHORS + i] - zp) * scale;
+    float h = ((float)out[3 * YOLO_ANCHORS + i] - zp) * scale;
+
+    if ((w <= 0.0f) || (h <= 0.0f))
+      continue;
+
+    DetBox_t d;
+    int x = (int)(cx - w / 2.0f);
+    int y = (int)(cy - h / 2.0f);
+    int bw = (int)w;
+    int bh = (int)h;
+
+    if (x < 0)
+      x = 0;
+    if (y < 0)
+      y = 0;
+    if ((x + bw) > NN_IMG_SIZE)
+      bw = NN_IMG_SIZE - x;
+    if ((y + bh) > NN_IMG_SIZE)
+      bh = NN_IMG_SIZE - y;
+
+    d.x = (uint16_t)x;
+    d.y = (uint16_t)y;
+    d.w = (uint16_t)bw;
+    d.h = (uint16_t)bh;
+    d.cls = best_cls;
+    d.score = best_score;
+
+    if (detection_count < YOLO_MAX)
+      detections[detection_count++] = d;
+  }
+
+  /* Greedy NMS */
+  for (int i = 0; i < detection_count; i++)
+  {
+    for (int j = i + 1; j < detection_count; j++)
+    {
+      if (Compute_IoU(&detections[i], &detections[j]) > YOLO_IOU)
+      {
+        detections[j] = detections[--detection_count];
+        j--;
       }
     }
   }
@@ -541,7 +635,7 @@ static void Display_WelcomeScreen(void)
     UTIL_LCD_FillRGBRect((lcd_bg_area.XSize-200)/2, 54, (uint8_t *) stlogo, 200, 107);
 
     /* Display welcome message */
-    UTIL_LCDEx_PrintfAt(0, LINE(15), CENTER_MODE, "Image Classification");
+    UTIL_LCDEx_PrintfAt(0, LINE(15), CENTER_MODE, "Object Detection");
     UTIL_LCDEx_PrintfAt(0, LINE(16), CENTER_MODE, WELCOME_MSG_1);
     UTIL_LCDEx_PrintfAt(0, LINE(17), CENTER_MODE, WELCOME_MSG_2[0]);
     UTIL_LCDEx_PrintfAt(0, LINE(18), CENTER_MODE, WELCOME_MSG_2[1]);
