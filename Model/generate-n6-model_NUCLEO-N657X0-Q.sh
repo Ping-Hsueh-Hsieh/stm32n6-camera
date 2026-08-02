@@ -10,6 +10,9 @@ $STEDGEAI_CORE_BIN generate \
     --c-api st-ai \
     --workspace st_yolo_ws \
     --lib $STEDGEAI_CORE_LIB \
+    --input-data-type uint8 \
+    --inputs-ch-position chlast \
+    --output-data-type int8 \
     --output st_yolo_output
 
 mv st_yolo_output/network.c NUCLEO-N657X0-Q/network.c

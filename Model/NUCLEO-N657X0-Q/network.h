@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    network.h
   * @author  STEdgeAI
-  * @date    2026-08-02 14:30:54
+  * @date    2026-08-02 15:32:25
   * @brief   Minimal description of the generated c-implemention of the network
   ******************************************************************************
   * @attention
@@ -28,14 +28,14 @@
 
 /************************** INPUTS ********************************************/
 #define LL_ATON_NETWORK_IN_NUM        (1)    // Total number of input buffers
-// Input buffer 1 -- Input_2_out_0
+// Input buffer 1 -- Input_3_out_0
 #define LL_ATON_NETWORK_IN_1_ALIGNMENT   (32)
-#define LL_ATON_NETWORK_IN_1_SIZE_BYTES  (110592)
+#define LL_ATON_NETWORK_IN_1_SIZE_BYTES  (27648)
 
 /************************** OUTPUTS *******************************************/
 #define LL_ATON_NETWORK_OUT_NUM        (1)    // Total number of output buffers
-// Output buffer 1 -- Concat_237_out_0
+// Output buffer 1 -- Quantize_504_out_0
 #define LL_ATON_NETWORK_OUT_1_ALIGNMENT   (32)
-#define LL_ATON_NETWORK_OUT_1_SIZE_BYTES  (63504)
+#define LL_ATON_NETWORK_OUT_1_SIZE_BYTES  (15876)
 
 #endif /* LL_ATON_NETWORK_H */
