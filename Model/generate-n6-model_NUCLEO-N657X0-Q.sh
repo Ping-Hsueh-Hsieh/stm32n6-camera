@@ -2,7 +2,7 @@ set -eu # Exit on any error, Exit on unset variable
 
 $STEDGEAI_CORE_BIN generate \
     --type onnx \
-    --model ./yolov8n.onnx \
+    --model ./yolov8n_boxnorm.onnx \
     --target stm32n6 \
     --st-neural-art default@user_neuralart_NUCLEO-N657X0-Q.json \
     --optimization balanced \

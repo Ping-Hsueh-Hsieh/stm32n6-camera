@@ -44075,7 +44075,7 @@ $/model.21/m.0/cv2/conv/Conv_output_0
 onnx.inferonnxruntime.quantr=
 description.Ultralytics YOLOv8n model trained on coco.yamlr
 authorUltralyticsr"
-date2026-08-02T15:31:33.961318r
+date2026-08-02T16:01:04.585120r
 version8.4.87r=
 license2AGPL-3.0 License (https://ultralytics.com/license)r$
 docshttps://docs.ultralytics.comr

@@ -13,7 +13,7 @@ APP_BIN="$ROOT/Application/NUCLEO-N657X0-Q/STM32CubeIDE/UVCL/stm32n6-camera.bin"
 OUT_HEX=""
 DO_MERGE=0
 FSBL_HEX="${FSBL_HEX:-$ROOT/FSBL/ai_fsbl.hex}"
-NETWORK_HEX="${NETWORK_HEX:-$ROOT/Model/NUCLEO-N657X0-Q/network_data.hex}"
+NETWORK_HEX="${NETWORK_HEX:-$ROOT/Model/NUCLEO-N657X0-Q/network_atonbuf.hex}"
 
 usage() {
   cat <<EOF
@@ -174,5 +174,5 @@ else
   echo "wrote $OUT_HEX (app at 0x70100000)"
   echo "  - Signed with: $SIGNER"
   echo "  - To boot from flash also program FSBL/ai_fsbl.hex and"
-  echo "    Model/NUCLEO-N657X0-Q/network_data.hex (or rerun with --merge)."
+  echo "    Model/NUCLEO-N657X0-Q/network_atonbuf.hex (or rerun with --merge)."
 fi

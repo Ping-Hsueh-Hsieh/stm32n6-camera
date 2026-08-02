@@ -102,6 +102,8 @@ static int16_t nn_out_zp;
 #define YOLO_IOU        0.45f
 #define YOLO_MAX        10
 #define NN_IMG_SIZE     96
+/* Box rows are exported normalized to [0, 1] (scale 1/255), multiply back to pixels */
+#define YOLO_BOX_UNNORM 255.0f
 
 typedef struct
 {
@@ -488,12 +490,12 @@ static float Compute_IoU(DetBox_t *a, DetBox_t *b)
 /**
  * @brief Decode YOLOv8 detections from the network output
  *
- * The network output is a quantized S8 tensor [84][189] (CHW, scale 0.5163115
- * zero point -128): the first 4 rows hold the decoded box coordinates
- * (cx, cy, w, h) expressed in the 96x96 input image, rows 4..83 hold the
- * already sigmoided scores of the 80 COCO classes. 189 is the number of
- * anchors (12x12 + 6x6 + 3x3). Values are dequantized with
- * real = (q - zp) * scale.
+ * The network output is a quantized S8 tensor [84][189] (CHW): the first 4
+ * rows hold the decoded box coordinates (cx, cy, w, h) normalized to [0, 1]
+ * (restore pixels by multiplying by 255), rows 4..83 hold the already
+ * sigmoided scores of the 80 COCO classes. 189 is the number of anchors
+ * (12x12 + 6x6 + 3x3). Scale and zero point are read at runtime from the
+ * generated model info; values are dequantized with real = (q - zp) * scale.
  */
 void Network_Postprocess(void)
 {
@@ -521,10 +523,10 @@ void Network_Postprocess(void)
     if (best_score < YOLO_CONF)
       continue;
 
-    float cx = ((float)out[0 * YOLO_ANCHORS + i] - zp) * scale;
-    float cy = ((float)out[1 * YOLO_ANCHORS + i] - zp) * scale;
-    float w = ((float)out[2 * YOLO_ANCHORS + i] - zp) * scale;
-    float h = ((float)out[3 * YOLO_ANCHORS + i] - zp) * scale;
+    float cx = (((float)out[0 * YOLO_ANCHORS + i] - zp) * scale) * YOLO_BOX_UNNORM;
+    float cy = (((float)out[1 * YOLO_ANCHORS + i] - zp) * scale) * YOLO_BOX_UNNORM;
+    float w = (((float)out[2 * YOLO_ANCHORS + i] - zp) * scale) * YOLO_BOX_UNNORM;
+    float h = (((float)out[3 * YOLO_ANCHORS + i] - zp) * scale) * YOLO_BOX_UNNORM;
 
     if ((w <= 0.0f) || (h <= 0.0f))
       continue;
